@@ -1,21 +1,17 @@
-"""FastMCP server for Reclaim.ai integration."""
+"""Task management tools for Reclaim.ai."""
 
-from typing import Optional
+from typing import Any, Optional
 
-from fastmcp import FastMCP
-
-from reclaim_mcp.tools import tasks
-
-mcp = FastMCP("Reclaim.ai")
+from reclaim_mcp.client import ReclaimClient
+from reclaim_mcp.config import get_settings
 
 
-@mcp.tool
-def health_check() -> str:
-    """Check if the server is running."""
-    return "OK"
+def _get_client() -> ReclaimClient:
+    """Get a configured Reclaim client."""
+    settings = get_settings()
+    return ReclaimClient(settings)
 
 
-@mcp.tool
 async def list_tasks(
     status: str = "NEW,SCHEDULED,IN_PROGRESS",
     limit: int = 50,
@@ -29,10 +25,12 @@ async def list_tasks(
     Returns:
         List of task objects with id, title, duration, due_date, status, etc.
     """
-    return await tasks.list_tasks(status=status, limit=limit)
+    client = _get_client()
+    params = {"status": status, "limit": limit}
+    tasks = await client.get("/api/tasks", params=params)
+    return tasks
 
 
-@mcp.tool
 async def create_task(
     title: str,
     duration_minutes: int,
@@ -47,7 +45,7 @@ async def create_task(
     Args:
         title: Task title/description
         duration_minutes: Total time needed for the task in minutes
-        due_date: ISO date string (YYYY-MM-DD) or None for no deadline
+        due_date: ISO datetime string or None for no deadline
         min_chunk_size_minutes: Minimum time block size (default 15)
         max_chunk_size_minutes: Maximum time block size (None = duration)
         snooze_until: Don't schedule before this datetime (ISO format)
@@ -56,18 +54,31 @@ async def create_task(
     Returns:
         Created task object
     """
-    return await tasks.create_task(
-        title=title,
-        duration_minutes=duration_minutes,
-        due_date=due_date,
-        min_chunk_size_minutes=min_chunk_size_minutes,
-        max_chunk_size_minutes=max_chunk_size_minutes,
-        snooze_until=snooze_until,
-        priority=priority,
-    )
+    client = _get_client()
+
+    # Convert minutes to time chunks (Reclaim uses 15-min chunks)
+    time_chunks = duration_minutes // 15
+    if time_chunks < 1:
+        time_chunks = 1
+
+    payload: dict[str, Any] = {
+        "title": title,
+        "timeChunksRequired": time_chunks,
+        "minChunkSize": min_chunk_size_minutes,
+        "maxChunkSize": max_chunk_size_minutes or duration_minutes,
+        "eventCategory": "WORK",
+        "priority": priority,
+    }
+
+    if due_date is not None:
+        payload["deadline"] = due_date
+    if snooze_until is not None:
+        payload["snoozeUntil"] = snooze_until
+
+    result = await client.post("/api/tasks", payload)
+    return result
 
 
-@mcp.tool
 async def update_task(
     task_id: int,
     title: Optional[str] = None,
@@ -87,16 +98,22 @@ async def update_task(
     Returns:
         Updated task object
     """
-    return await tasks.update_task(
-        task_id=task_id,
-        title=title,
-        duration_minutes=duration_minutes,
-        due_date=due_date,
-        status=status,
-    )
+    client = _get_client()
+
+    update_data: dict = {}
+    if title is not None:
+        update_data["title"] = title
+    if duration_minutes is not None:
+        update_data["timeChunksRequired"] = duration_minutes // 15
+    if due_date is not None:
+        update_data["due"] = due_date
+    if status is not None:
+        update_data["status"] = status
+
+    result = await client.patch(f"/api/tasks/{task_id}", update_data)
+    return result
 
 
-@mcp.tool
 async def mark_task_complete(task_id: int) -> dict:
     """Mark a task as complete.
 
@@ -106,10 +123,11 @@ async def mark_task_complete(task_id: int) -> dict:
     Returns:
         Updated task object
     """
-    return await tasks.mark_task_complete(task_id=task_id)
+    client = _get_client()
+    result = await client.post(f"/api/planner/done/task/{task_id}", {})
+    return result
 
 
-@mcp.tool
 async def delete_task(task_id: int) -> bool:
     """Delete a task from Reclaim.ai.
 
@@ -119,10 +137,11 @@ async def delete_task(task_id: int) -> bool:
     Returns:
         True if deleted successfully, False otherwise
     """
-    return await tasks.delete_task(task_id=task_id)
+    client = _get_client()
+    result = await client.delete(f"/api/tasks/{task_id}")
+    return result
 
 
-@mcp.tool
 async def add_time_to_task(
     task_id: int,
     minutes: int,
@@ -138,13 +157,16 @@ async def add_time_to_task(
     Returns:
         Updated task object
     """
-    return await tasks.add_time_to_task(task_id=task_id, minutes=minutes, notes=notes)
+    client = _get_client()
 
+    # Convert to time chunks
+    chunks = minutes // 15
+    if chunks < 1:
+        chunks = 1
 
-def main() -> None:
-    """Entry point for the MCP server."""
-    mcp.run()
+    payload: dict[str, Any] = {"timeChunksSpent": chunks}
+    if notes:
+        payload["notes"] = notes
 
-
-if __name__ == "__main__":
-    main()
+    result = await client.patch(f"/api/tasks/{task_id}", payload)
+    return result
