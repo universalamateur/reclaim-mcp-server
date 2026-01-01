@@ -135,6 +135,8 @@ This properly transitions status to ARCHIVED and sets the `finished` timestamp.
 
 ## MCP Server Tool Mapping
 
+### Task Tools (v0.1.x)
+
 | MCP Tool | API Endpoint(s) |
 |----------|-----------------|
 | `list_tasks` | GET /api/tasks |
@@ -145,3 +147,42 @@ This properly transitions status to ARCHIVED and sets the `finished` timestamp.
 | `mark_task_complete` | POST /api/planner/done/task/{id} |
 | `delete_task` | DELETE /api/tasks/{id} |
 | `add_time_to_task` | POST /api/planner/log-work/task/{id}?minutes=X |
+
+### Calendar Tools (v0.2.0)
+
+| MCP Tool | API Endpoint(s) |
+|----------|-----------------|
+| `list_events` | GET /api/events?start=X&end=Y |
+| `list_personal_events` | GET /api/events/personal |
+| `get_event` | GET /api/events/{calendarId}/{eventId} |
+
+### Event Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/events` | GET | List events with date range and filters |
+| `/api/events/personal` | GET | List Reclaim-managed personal events |
+| `/api/events/{calendarId}/{eventId}` | GET | Get single event |
+| `/api/availability/suggested-times` | POST | Find available time slots |
+
+### Event Schema
+
+Key fields in the Event object:
+
+```yaml
+Event:
+  properties:
+    eventId: string
+    calendarId: int64
+    title: string
+    eventStart: datetime
+    eventEnd: datetime
+    location: string (nullable)
+    description: string (nullable)
+    organizer: string (nullable)
+    priority: PriorityLevel
+    type: EventType (EXTERNAL, RECLAIM_MANAGED, etc.)
+    meetingType: MeetingType (nullable)
+    rsvpStatus: RsvpStatus (nullable)
+    reclaimManaged: boolean
+```

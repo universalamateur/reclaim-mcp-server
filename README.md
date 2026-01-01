@@ -6,13 +6,13 @@ A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai
 
 ## Current Status
 
-**Version**: v0.1.1
-**Status**: Task management fully working
+**Version**: v0.2.0
+**Status**: Tasks + Calendar working
 
 | Feature | Status |
 |---------|--------|
 | Task Management | ✅ Complete (9 tools) |
-| Calendar Events | 🔲 Planned (v0.2.0) |
+| Calendar Events | ✅ Complete (3 tools) |
 | Habits & Focus | 🔲 Planned (v0.3.0) |
 | Analytics | 🔲 Planned (v1.0.0) |
 
@@ -73,11 +73,13 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `add_time_to_task` | Log time spent on task (uses planner API) |
 | `health_check` | Server health check |
 
-### Calendar (v0.2.0) 🔲
+### Calendar (v0.2.0) ✅
 
-- `list_events` - List calendar events in date range
-- `get_event` - Get single calendar event
-- `get_free_slots` - Find available time slots
+| Tool | Description |
+|------|-------------|
+| `list_events` | List calendar events within a time range |
+| `list_personal_events` | List Reclaim-managed events (tasks, habits, focus) |
+| `get_event` | Get single event by calendar ID and event ID |
 
 ### Habits & Focus (v0.3.0) 🔲
 
@@ -105,7 +107,7 @@ poetry run isort src tests
 poetry run flake8 src tests
 poetry run mypy src
 
-# Run tests (28 tests)
+# Run tests (39 tests)
 poetry run pytest
 
 # Dev mode with hot reload
@@ -137,21 +139,20 @@ See `docs/` folder:
 | Version | Features | Status |
 |---------|----------|--------|
 | v0.1.0 | Task CRUD, completion, time tracking | ✅ Released |
-| v0.1.1 | Fixed time tracking, added get_task, list_completed_tasks | ✅ Ready |
-| v0.2.0 | Calendar events, free slots | 🔲 Planned |
+| v0.1.1 | Fixed time tracking, added get_task, list_completed_tasks | ✅ Released |
+| v0.2.0 | Calendar events (list, get, find free slots) | ✅ Ready |
 | v0.3.0 | Habits, focus time settings | 🔲 Planned |
 | v1.0.0 | Analytics, scheduling links, PyPI | 🔲 Planned |
 
 ## License
 
-MIT
+[MIT](./LICENSE)
 
 ## Author
 
-Falko Sieverding ([@fsieverding](https://gitlab.com/fsieverding))
+Falko Sieverding ([@UniversalAmateur](https://gitlab.com/UniversalAmateur))
 
 ## Acknowledgments
 
 - [FastMCP](https://github.com/jlowin/fastmcp) - MCP server framework
-- [jj3ny/reclaim-mcp-server](https://github.com/jj3ny/reclaim-mcp-server) - Reference TypeScript implementation
 - [Reclaim.ai](https://reclaim.ai) - Calendar intelligence platform

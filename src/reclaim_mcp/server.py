@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastmcp import FastMCP
 
-from reclaim_mcp.tools import tasks
+from reclaim_mcp.tools import events, tasks
 
 mcp = FastMCP("Reclaim.ai")
 
@@ -165,6 +165,83 @@ async def add_time_to_task(
         Planner action result confirming time was logged
     """
     return await tasks.add_time_to_task(task_id=task_id, minutes=minutes, notes=notes)
+
+
+# Calendar & Event Tools (Phase 5)
+
+
+@mcp.tool
+async def list_events(
+    start: str,
+    end: str,
+    calendar_ids: Optional[list[int]] = None,
+    event_type: Optional[str] = None,
+    thin: bool = True,
+) -> list[dict]:
+    """List calendar events within a time range.
+
+    Args:
+        start: Start date (e.g., '2026-01-02' or '2026-01-02T00:00:00Z' - time is ignored)
+        end: End date (e.g., '2026-01-02' or '2026-01-02T23:59:59Z' - time is ignored)
+        calendar_ids: Optional list of calendar IDs to filter by
+        event_type: Optional event type filter (EXTERNAL, RECLAIM_MANAGED, etc.)
+        thin: If True, return minimal event data (default True)
+
+    Returns:
+        List of event objects with eventId, title, eventStart, eventEnd, etc.
+    """
+    return await events.list_events(
+        start=start,
+        end=end,
+        calendar_ids=calendar_ids,
+        event_type=event_type,
+        thin=thin,
+    )
+
+
+@mcp.tool
+async def list_personal_events(
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    limit: int = 50,
+) -> list[dict]:
+    """List Reclaim-managed personal events (tasks, habits, focus time).
+
+    Args:
+        start: Optional start datetime in ISO format
+        end: Optional end datetime in ISO format
+        limit: Maximum number of events to return (default 50)
+
+    Returns:
+        List of personal event objects.
+    """
+    return await events.list_personal_events(start=start, end=end, limit=limit)
+
+
+@mcp.tool
+async def get_event(
+    calendar_id: int,
+    event_id: str,
+    thin: bool = False,
+) -> dict:
+    """Get a single event by calendar ID and event ID.
+
+    Note: Works best with events from list_events (external calendar events).
+    Reclaim-managed events from list_personal_events may return 404.
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to retrieve
+        thin: If True, return minimal event data (default False for full details)
+
+    Returns:
+        Event object with full details.
+    """
+    return await events.get_event(
+        calendar_id=calendar_id,
+        event_id=event_id,
+        thin=thin,
+    )
 
 
 def main() -> None:

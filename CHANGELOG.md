@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-01
+
+### Added
+
+- **Calendar & Event Tools** (3 new tools):
+  - `list_events` - List calendar events within a time range
+  - `list_personal_events` - List Reclaim-managed events (tasks, habits, focus time)
+  - `get_event` - Get a single event by calendar ID and event ID
+
 ## [0.1.1] - 2026-01-01
 
 ### Added
