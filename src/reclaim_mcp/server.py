@@ -20,16 +20,42 @@ async def list_tasks(
     status: str = "NEW,SCHEDULED,IN_PROGRESS",
     limit: int = 50,
 ) -> list[dict]:
-    """List all tasks from Reclaim.ai with optional status filter.
+    """List active tasks from Reclaim.ai (excludes completed by default).
 
     Args:
-        status: Comma-separated task statuses (NEW, SCHEDULED, IN_PROGRESS, COMPLETE)
+        status: Comma-separated task statuses (NEW, SCHEDULED, IN_PROGRESS, COMPLETE, ARCHIVED)
         limit: Maximum number of tasks to return (default 50)
 
     Returns:
         List of task objects with id, title, duration, due_date, status, etc.
     """
     return await tasks.list_tasks(status=status, limit=limit)
+
+
+@mcp.tool
+async def list_completed_tasks(limit: int = 50) -> list[dict]:
+    """List completed and archived tasks from Reclaim.ai.
+
+    Args:
+        limit: Maximum number of tasks to return (default 50)
+
+    Returns:
+        List of completed/archived task objects.
+    """
+    return await tasks.list_completed_tasks(limit=limit)
+
+
+@mcp.tool
+async def get_task(task_id: int) -> dict:
+    """Get a single task by ID.
+
+    Args:
+        task_id: The task ID to retrieve
+
+    Returns:
+        Task object with all details.
+    """
+    return await tasks.get_task(task_id=task_id)
 
 
 @mcp.tool
@@ -128,15 +154,15 @@ async def add_time_to_task(
     minutes: int,
     notes: Optional[str] = None,
 ) -> dict:
-    """Log time spent on a task.
+    """Log time spent on a task (increments existing time).
 
     Args:
         task_id: The task ID
-        minutes: Minutes to add
+        minutes: Minutes to add to the existing time spent
         notes: Optional notes about the work done
 
     Returns:
-        Updated task object
+        Updated task object with new total timeChunksSpent
     """
     return await tasks.add_time_to_task(task_id=task_id, minutes=minutes, notes=notes)
 

@@ -1,6 +1,8 @@
-# Reclaim.ai MCP Server
+# Reclaim.ai MCP Server _(UNOFFICIAL)_
 
-A personal MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai) built with [FastMCP](https://gofastmcp.com) (Python).
+> ⚠️ **UNOFFICIAL & UNAFFILIATED** – This project is **not** endorsed, sponsored, or supported by Reclaim.ai. It uses Reclaim's public API. Use at your own risk and comply with [Reclaim's Terms of Service](https://reclaim.ai/terms).
+
+A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai) built with [FastMCP](https://gofastmcp.com).
 
 ## Features
 
@@ -51,12 +53,14 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ### Tasks (v0.1.0)
 
-- `list_tasks` - List all tasks with status filter
+- `list_tasks` - List active tasks (excludes completed by default)
+- `list_completed_tasks` - List completed and archived tasks
+- `get_task` - Get a single task by ID
 - `create_task` - Create new task for auto-scheduling
 - `update_task` - Update existing task
 - `mark_task_complete` - Mark task as complete
 - `delete_task` - Delete a task
-- `add_time_to_task` - Log time spent on task
+- `add_time_to_task` - Log time spent on task (increments existing time)
 
 ### Calendar (v0.2.0)
 

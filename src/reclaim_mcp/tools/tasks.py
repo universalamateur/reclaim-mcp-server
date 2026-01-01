@@ -16,10 +16,10 @@ async def list_tasks(
     status: str = "NEW,SCHEDULED,IN_PROGRESS",
     limit: int = 50,
 ) -> list[dict]:
-    """List all tasks from Reclaim.ai with optional status filter.
+    """List active tasks from Reclaim.ai (excludes completed by default).
 
     Args:
-        status: Comma-separated task statuses (NEW, SCHEDULED, IN_PROGRESS, COMPLETE)
+        status: Comma-separated task statuses (NEW, SCHEDULED, IN_PROGRESS, COMPLETE, ARCHIVED)
         limit: Maximum number of tasks to return (default 50)
 
     Returns:
@@ -29,6 +29,35 @@ async def list_tasks(
     params = {"status": status, "limit": limit}
     tasks = await client.get("/api/tasks", params=params)
     return tasks
+
+
+async def list_completed_tasks(limit: int = 50) -> list[dict]:
+    """List completed and archived tasks from Reclaim.ai.
+
+    Args:
+        limit: Maximum number of tasks to return (default 50)
+
+    Returns:
+        List of completed/archived task objects.
+    """
+    client = _get_client()
+    params = {"status": "COMPLETE,ARCHIVED", "limit": limit}
+    tasks = await client.get("/api/tasks", params=params)
+    return tasks
+
+
+async def get_task(task_id: int) -> dict:
+    """Get a single task by ID.
+
+    Args:
+        task_id: The task ID to retrieve
+
+    Returns:
+        Task object with all details.
+    """
+    client = _get_client()
+    task = await client.get(f"/api/tasks/{task_id}")
+    return task
 
 
 async def create_task(
@@ -147,11 +176,11 @@ async def add_time_to_task(
     minutes: int,
     notes: Optional[str] = None,
 ) -> dict:
-    """Log time spent on a task.
+    """Log time spent on a task (increments existing time).
 
     Args:
         task_id: The task ID
-        minutes: Minutes to add
+        minutes: Minutes to add to the existing time spent
         notes: Optional notes about the work done
 
     Returns:
@@ -159,12 +188,17 @@ async def add_time_to_task(
     """
     client = _get_client()
 
-    # Convert to time chunks
-    chunks = minutes // 15
-    if chunks < 1:
-        chunks = 1
+    # Fetch current task to get existing time spent
+    current_task = await client.get(f"/api/tasks/{task_id}")
+    current_chunks = current_task.get("timeChunksSpent", 0)
 
-    payload: dict[str, Any] = {"timeChunksSpent": chunks}
+    # Convert minutes to time chunks and add to existing
+    new_chunks = minutes // 15
+    if new_chunks < 1:
+        new_chunks = 1
+    total_chunks = current_chunks + new_chunks
+
+    payload: dict[str, Any] = {"timeChunksSpent": total_chunks}
     if notes:
         payload["notes"] = notes
 
