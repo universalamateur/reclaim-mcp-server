@@ -1,0 +1,40 @@
+stages:
+  - lint
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - .venv
+
+.poetry-setup:
+  before_script:
+    - pip install poetry
+    - poetry config virtualenvs.in-project true
+    - poetry install
+
+lint:
+  stage: lint
+  image: python:3.10
+  extends: .poetry-setup
+  script:
+    - poetry run black --check src tests
+    - poetry run isort --check-only src tests
+    - poetry run flake8 src tests
+    - poetry run mypy src
+
+test:
+  stage: test
+  image: python:3.10
+  extends: .poetry-setup
+  script:
+    - poetry run pytest --cov=src/reclaim_mcp --cov-report=xml
+  coverage: '/TOTAL.*\s+(\d+%)/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml

@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "reclaim-mcp-server"
+version = "0.1.0"
+description = "MCP server for Reclaim.ai calendar integration"
+authors = ["Falko Sieverding"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "reclaim_mcp", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastmcp = "^2.0.0"
+httpx = "^0.28.0"
+pydantic = "^2.0.0"
+pydantic-settings = "^2.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0.0"
+pytest-cov = "^4.0.0"
+pytest-asyncio = "^0.21.0"
+black = "^23.0.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+pylint = "^2.17.0"
+mypy = "^1.0.0"
+
+[tool.poetry.scripts]
+reclaim-mcp-server = "reclaim_mcp.server:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+strict = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
