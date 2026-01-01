@@ -2,7 +2,16 @@
 
 import pytest
 
+from reclaim_mcp.cache import invalidate_cache
 from reclaim_mcp.config import Settings
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    """Clear cache before each test to ensure test isolation."""
+    invalidate_cache()
+    yield
+    invalidate_cache()
 
 
 @pytest.fixture

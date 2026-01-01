@@ -2,8 +2,10 @@
 
 from typing import Any, Optional
 
+from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
+from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
 
 
 def _get_client() -> ReclaimClient:
@@ -12,18 +14,26 @@ def _get_client() -> ReclaimClient:
     return ReclaimClient(settings)
 
 
-async def list_habits() -> list[dict]:
+@ttl_cache(ttl=120)
+async def list_habits() -> list[dict] | str:
     """List all smart habits.
 
     Returns:
         List of SmartHabitLineageView objects with lineageId, title, enabled, etc.
+        Or error string if request fails.
     """
-    client = _get_client()
-    habits = await client.get("/api/smart-habits")
-    return habits
+    try:
+        client = _get_client()
+        habits = await client.get("/api/smart-habits")
+        return habits
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error listing habits: {e}"
 
 
-async def get_habit(lineage_id: int) -> dict:
+@ttl_cache(ttl=60)
+async def get_habit(lineage_id: int) -> dict | str:
     """Get a single smart habit by lineage ID.
 
     Args:
@@ -31,10 +41,18 @@ async def get_habit(lineage_id: int) -> dict:
 
     Returns:
         SmartHabitLineageView object with full details.
+        Or error string if request fails.
     """
-    client = _get_client()
-    habit = await client.get(f"/api/smart-habits/{lineage_id}")
-    return habit
+    try:
+        client = _get_client()
+        habit = await client.get(f"/api/smart-habits/{lineage_id}")
+        return habit
+    except NotFoundError:
+        return f"Error: Habit {lineage_id} not found."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error getting habit {lineage_id}: {e}"
 
 
 async def create_habit(
@@ -49,7 +67,7 @@ async def create_habit(
     description: Optional[str] = None,
     enabled: bool = True,
     time_policy_type: Optional[str] = None,
-) -> dict:
+) -> dict | str:
     """Create a new smart habit.
 
     Args:
@@ -67,42 +85,50 @@ async def create_habit(
 
     Returns:
         Created SmartHabitLineageView object.
+        Or error string if request fails.
     """
-    client = _get_client()
+    try:
+        client = _get_client()
 
-    # Build recurrence object
-    recurrence: dict[str, Any] = {"frequency": frequency}
-    if ideal_days:
-        recurrence["idealDays"] = ideal_days
+        # Build recurrence object
+        recurrence: dict[str, Any] = {"frequency": frequency}
+        if ideal_days:
+            recurrence["idealDays"] = ideal_days
 
-    # Determine time policy type based on event type if not explicitly provided
-    if time_policy_type is None:
-        if event_type == "PERSONAL":
-            time_policy_type = "PERSONAL"
-        else:
-            time_policy_type = "WORK"
+        # Determine time policy type based on event type if not explicitly provided
+        if time_policy_type is None:
+            if event_type == "PERSONAL":
+                time_policy_type = "PERSONAL"
+            else:
+                time_policy_type = "WORK"
 
-    # Normalize ideal time to HH:MM:SS format
-    if len(ideal_time) == 5:  # HH:MM format
-        ideal_time = f"{ideal_time}:00"
+        # Normalize ideal time to HH:MM:SS format
+        if len(ideal_time) == 5:  # HH:MM format
+            ideal_time = f"{ideal_time}:00"
 
-    # Build request payload
-    payload: dict[str, Any] = {
-        "title": title,
-        "idealTime": ideal_time,
-        "durationMinMins": duration_min_mins,
-        "durationMaxMins": duration_max_mins or duration_min_mins,
-        "enabled": enabled,
-        "recurrence": recurrence,
-        "organizer": {"timePolicyType": time_policy_type},
-        "eventType": event_type,
-        "defenseAggression": defense_aggression,
-    }
-    if description:
-        payload["description"] = description
+        # Build request payload
+        payload: dict[str, Any] = {
+            "title": title,
+            "idealTime": ideal_time,
+            "durationMinMins": duration_min_mins,
+            "durationMaxMins": duration_max_mins or duration_min_mins,
+            "enabled": enabled,
+            "recurrence": recurrence,
+            "organizer": {"timePolicyType": time_policy_type},
+            "eventType": event_type,
+            "defenseAggression": defense_aggression,
+        }
+        if description:
+            payload["description"] = description
 
-    habit = await client.post("/api/smart-habits", data=payload)
-    return habit
+        habit = await client.post("/api/smart-habits", data=payload)
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return habit
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error creating habit '{title}': {e}"
 
 
 async def update_habit(
@@ -117,7 +143,7 @@ async def update_habit(
     event_type: Optional[str] = None,
     defense_aggression: Optional[str] = None,
     description: Optional[str] = None,
-) -> dict:
+) -> dict | str:
     """Update an existing smart habit.
 
     Args:
@@ -135,44 +161,54 @@ async def update_habit(
 
     Returns:
         Updated SmartHabitLineageView object.
+        Or error string if request fails.
     """
-    client = _get_client()
+    try:
+        client = _get_client()
 
-    payload: dict[str, Any] = {}
-    if title is not None:
-        payload["title"] = title
-    if ideal_time is not None:
-        # Normalize ideal time to HH:MM:SS format
-        if len(ideal_time) == 5:  # HH:MM format
-            ideal_time = f"{ideal_time}:00"
-        payload["idealTime"] = ideal_time
-    if duration_min_mins is not None:
-        payload["durationMinMins"] = duration_min_mins
-    if duration_max_mins is not None:
-        payload["durationMaxMins"] = duration_max_mins
-    if enabled is not None:
-        payload["enabled"] = enabled
-    if description is not None:
-        payload["description"] = description
-    if event_type is not None:
-        payload["eventType"] = event_type
-    if defense_aggression is not None:
-        payload["defenseAggression"] = defense_aggression
+        payload: dict[str, Any] = {}
+        if title is not None:
+            payload["title"] = title
+        if ideal_time is not None:
+            # Normalize ideal time to HH:MM:SS format
+            if len(ideal_time) == 5:  # HH:MM format
+                ideal_time = f"{ideal_time}:00"
+            payload["idealTime"] = ideal_time
+        if duration_min_mins is not None:
+            payload["durationMinMins"] = duration_min_mins
+        if duration_max_mins is not None:
+            payload["durationMaxMins"] = duration_max_mins
+        if enabled is not None:
+            payload["enabled"] = enabled
+        if description is not None:
+            payload["description"] = description
+        if event_type is not None:
+            payload["eventType"] = event_type
+        if defense_aggression is not None:
+            payload["defenseAggression"] = defense_aggression
 
-    # Build recurrence object if any recurrence fields provided
-    if frequency is not None or ideal_days is not None:
-        recurrence: dict[str, Any] = {}
-        if frequency is not None:
-            recurrence["frequency"] = frequency
-        if ideal_days is not None:
-            recurrence["idealDays"] = ideal_days
-        payload["recurrence"] = recurrence
+        # Build recurrence object if any recurrence fields provided
+        if frequency is not None or ideal_days is not None:
+            recurrence: dict[str, Any] = {}
+            if frequency is not None:
+                recurrence["frequency"] = frequency
+            if ideal_days is not None:
+                recurrence["idealDays"] = ideal_days
+            payload["recurrence"] = recurrence
 
-    habit = await client.patch(f"/api/smart-habits/{lineage_id}", data=payload)
-    return habit
+        habit = await client.patch(f"/api/smart-habits/{lineage_id}", data=payload)
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return habit
+    except NotFoundError:
+        return f"Error: Habit {lineage_id} not found."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error updating habit {lineage_id}: {e}"
 
 
-async def delete_habit(lineage_id: int) -> bool:
+async def delete_habit(lineage_id: int) -> bool | str:
     """Delete a smart habit.
 
     Args:
@@ -180,13 +216,21 @@ async def delete_habit(lineage_id: int) -> bool:
 
     Returns:
         True if deleted successfully.
+        Or error string if request fails.
     """
-    client = _get_client()
-    await client.delete(f"/api/smart-habits/{lineage_id}")
-    return True
+    try:
+        client = _get_client()
+        await client.delete(f"/api/smart-habits/{lineage_id}")
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return True
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error deleting habit {lineage_id}: {e}"
 
 
-async def mark_habit_done(event_id: str) -> dict:
+async def mark_habit_done(event_id: str) -> dict | str:
     """Mark a habit instance as done.
 
     Args:
@@ -194,13 +238,23 @@ async def mark_habit_done(event_id: str) -> dict:
 
     Returns:
         SmartSeriesActionPlannedResult with events, series, and status info.
+        Or error string if request fails.
     """
-    client = _get_client()
-    result = await client.post(f"/api/smart-habits/planner/{event_id}/done", data={})
-    return result
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/smart-habits/planner/{event_id}/done", data={})
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return result
+    except NotFoundError:
+        return f"Error: Habit event {event_id} not found."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error marking habit done: {e}"
 
 
-async def skip_habit(event_id: str) -> dict:
+async def skip_habit(event_id: str) -> dict | str:
     """Skip a habit instance.
 
     Args:
@@ -208,13 +262,23 @@ async def skip_habit(event_id: str) -> dict:
 
     Returns:
         SmartSeriesActionPlannedResult with events, series, and status info.
+        Or error string if request fails.
     """
-    client = _get_client()
-    result = await client.post(f"/api/smart-habits/planner/{event_id}/skip", data={})
-    return result
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/smart-habits/planner/{event_id}/skip", data={})
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return result
+    except NotFoundError:
+        return f"Error: Habit event {event_id} not found."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error skipping habit: {e}"
 
 
-async def lock_habit_instance(event_id: str) -> dict:
+async def lock_habit_instance(event_id: str) -> dict | str:
     """Lock a habit instance to prevent it from being rescheduled.
 
     Args:
@@ -222,13 +286,23 @@ async def lock_habit_instance(event_id: str) -> dict:
 
     Returns:
         SmartSeriesActionPlannedResult with events, series, and status info.
+        Or error string if request fails.
     """
-    client = _get_client()
-    result = await client.post(f"/api/smart-habits/planner/{event_id}/lock", data={})
-    return result
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/smart-habits/planner/{event_id}/lock", data={})
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return result
+    except NotFoundError:
+        return f"Error: Habit event {event_id} not found."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error locking habit instance: {e}"
 
 
-async def unlock_habit_instance(event_id: str) -> dict:
+async def unlock_habit_instance(event_id: str) -> dict | str:
     """Unlock a habit instance to allow it to be rescheduled.
 
     Args:
@@ -236,13 +310,23 @@ async def unlock_habit_instance(event_id: str) -> dict:
 
     Returns:
         SmartSeriesActionPlannedResult with events, series, and status info.
+        Or error string if request fails.
     """
-    client = _get_client()
-    result = await client.post(f"/api/smart-habits/planner/{event_id}/unlock", data={})
-    return result
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/smart-habits/planner/{event_id}/unlock", data={})
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return result
+    except NotFoundError:
+        return f"Error: Habit event {event_id} not found."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error unlocking habit instance: {e}"
 
 
-async def start_habit(lineage_id: int) -> dict:
+async def start_habit(lineage_id: int) -> dict | str:
     """Start a habit session now.
 
     Args:
@@ -250,13 +334,23 @@ async def start_habit(lineage_id: int) -> dict:
 
     Returns:
         SmartSeriesActionPlannedResult with events, series, and status info.
+        Or error string if request fails.
     """
-    client = _get_client()
-    result = await client.post(f"/api/smart-habits/planner/{lineage_id}/start", data={})
-    return result
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/smart-habits/planner/{lineage_id}/start", data={})
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return result
+    except NotFoundError:
+        return f"Error: Habit {lineage_id} not found."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error starting habit {lineage_id}: {e}"
 
 
-async def stop_habit(lineage_id: int) -> dict:
+async def stop_habit(lineage_id: int) -> dict | str:
     """Stop a currently running habit session.
 
     Args:
@@ -264,13 +358,23 @@ async def stop_habit(lineage_id: int) -> dict:
 
     Returns:
         SmartSeriesActionPlannedResult with events, series, and status info.
+        Or error string if request fails.
     """
-    client = _get_client()
-    result = await client.post(f"/api/smart-habits/planner/{lineage_id}/stop", data={})
-    return result
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/smart-habits/planner/{lineage_id}/stop", data={})
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return result
+    except NotFoundError:
+        return f"Error: Habit {lineage_id} not found."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error stopping habit {lineage_id}: {e}"
 
 
-async def enable_habit(lineage_id: int) -> dict:
+async def enable_habit(lineage_id: int) -> dict | str:
     """Enable a disabled habit to resume scheduling.
 
     Args:
@@ -278,13 +382,23 @@ async def enable_habit(lineage_id: int) -> dict:
 
     Returns:
         Empty dict on success.
+        Or error string if request fails.
     """
-    client = _get_client()
-    result = await client.post(f"/api/smart-habits/{lineage_id}/enable", data={})
-    return result
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/smart-habits/{lineage_id}/enable", data={})
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return result
+    except NotFoundError:
+        return f"Error: Habit {lineage_id} not found."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error enabling habit {lineage_id}: {e}"
 
 
-async def disable_habit(lineage_id: int) -> bool:
+async def disable_habit(lineage_id: int) -> bool | str:
     """Disable a habit to pause scheduling without deleting it.
 
     Args:
@@ -292,10 +406,18 @@ async def disable_habit(lineage_id: int) -> bool:
 
     Returns:
         True if disabled successfully.
+        Or error string if request fails.
     """
-    client = _get_client()
-    await client.delete(f"/api/smart-habits/{lineage_id}/disable")
-    return True
+    try:
+        client = _get_client()
+        await client.delete(f"/api/smart-habits/{lineage_id}/disable")
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return True
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error disabling habit {lineage_id}: {e}"
 
 
 async def convert_event_to_habit(
@@ -312,7 +434,7 @@ async def convert_event_to_habit(
     description: Optional[str] = None,
     enabled: bool = True,
     time_policy_type: Optional[str] = None,
-) -> dict:
+) -> dict | str:
     """Convert a calendar event into a recurring smart habit.
 
     Note: Not all events can be converted. The API rejects recurring instances,
@@ -335,39 +457,49 @@ async def convert_event_to_habit(
 
     Returns:
         Created SmartHabitLineageView object.
+        Or error string if request fails.
     """
-    client = _get_client()
+    try:
+        client = _get_client()
 
-    # Build recurrence object
-    recurrence: dict[str, Any] = {"frequency": frequency}
-    if ideal_days:
-        recurrence["idealDays"] = ideal_days
+        # Build recurrence object
+        recurrence: dict[str, Any] = {"frequency": frequency}
+        if ideal_days:
+            recurrence["idealDays"] = ideal_days
 
-    # Determine time policy type based on event type if not explicitly provided
-    if time_policy_type is None:
-        if event_type == "PERSONAL":
-            time_policy_type = "PERSONAL"
-        else:
-            time_policy_type = "WORK"
+        # Determine time policy type based on event type if not explicitly provided
+        if time_policy_type is None:
+            if event_type == "PERSONAL":
+                time_policy_type = "PERSONAL"
+            else:
+                time_policy_type = "WORK"
 
-    # Normalize ideal time to HH:MM:SS format
-    if len(ideal_time) == 5:  # HH:MM format
-        ideal_time = f"{ideal_time}:00"
+        # Normalize ideal time to HH:MM:SS format
+        if len(ideal_time) == 5:  # HH:MM format
+            ideal_time = f"{ideal_time}:00"
 
-    # Build request payload (same schema as create_habit)
-    payload: dict[str, Any] = {
-        "title": title,
-        "idealTime": ideal_time,
-        "durationMinMins": duration_min_mins,
-        "durationMaxMins": duration_max_mins or duration_min_mins,
-        "enabled": enabled,
-        "recurrence": recurrence,
-        "organizer": {"timePolicyType": time_policy_type},
-        "eventType": event_type,
-        "defenseAggression": defense_aggression,
-    }
-    if description:
-        payload["description"] = description
+        # Build request payload (same schema as create_habit)
+        payload: dict[str, Any] = {
+            "title": title,
+            "idealTime": ideal_time,
+            "durationMinMins": duration_min_mins,
+            "durationMaxMins": duration_max_mins or duration_min_mins,
+            "enabled": enabled,
+            "recurrence": recurrence,
+            "organizer": {"timePolicyType": time_policy_type},
+            "eventType": event_type,
+            "defenseAggression": defense_aggression,
+        }
+        if description:
+            payload["description"] = description
 
-    habit = await client.post(f"/api/smart-habits/convert/{calendar_id}/{event_id}", data=payload)
-    return habit
+        habit = await client.post(f"/api/smart-habits/convert/{calendar_id}/{event_id}", data=payload)
+        invalidate_cache("list_habits")
+        invalidate_cache("get_habit")
+        return habit
+    except NotFoundError:
+        return f"Error: Event {event_id} not found in calendar {calendar_id}."
+    except RateLimitError as e:
+        return str(e)
+    except ReclaimError as e:
+        return f"Error converting event to habit: {e}"

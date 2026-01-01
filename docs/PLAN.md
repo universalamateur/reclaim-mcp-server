@@ -1,6 +1,6 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: Ready for Implementation
+**Status**: v0.5.0 Complete - Ready for Public Release
 **Date**: 2026-01-01
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
@@ -23,7 +23,7 @@ Follow [GitLab Python Development Guidelines](https://docs.gitlab.com/developmen
 - **pyproject.toml** as single config file
 
 ### 3. Duo Project Readiness Aligned
-This project follows [SA Initiative: GitLab Duo-Ready Project Standards](https://gitlab.com/gitlab-com/customer-success/solutions-architecture-leaders/sa-initiatives/-/issues/615):
+This project follows GitLab Duo-Ready project standards:
 - Well-structured for AI code suggestions
 - Clear module boundaries
 - Comprehensive type hints
@@ -303,7 +303,7 @@ test:
     "reclaim": {
       "command": "poetry",
       "args": ["run", "python", "-m", "reclaim_mcp.server"],
-      "cwd": "/Users/falko/git/reclaim-mcp-server",
+      "cwd": "/path/to/reclaim-mcp-server",
       "env": {
         "RECLAIM_API_KEY": "your_key_here"
       }
@@ -329,4 +329,4 @@ test:
 - [Reclaim API Swagger](https://api.app.reclaim.ai/swagger/reclaim-api-0.1.yml)
 - [Existing TypeScript Server](https://github.com/jj3ny/reclaim-mcp-server)
 - [GitLab Python Guide](https://docs.gitlab.com/development/python_guide/)
-- [Duo-Ready Standards #615](https://gitlab.com/gitlab-com/customer-success/solutions-architecture-leaders/sa-initiatives/-/issues/615)
+- GitLab Duo-Ready project standards

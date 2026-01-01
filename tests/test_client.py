@@ -85,3 +85,69 @@ class TestReclaimClient:
         result = await client.delete("/api/tasks/99999")
 
         assert result is False
+
+    @pytest.mark.asyncio
+    async def test_get_request_rate_limit(self, settings: Settings, monkeypatch: MonkeyPatch) -> None:
+        """Test GET request raises RateLimitError on 429."""
+        from reclaim_mcp.exceptions import RateLimitError
+
+        async def mock_get(*args, **kwargs):
+            request = Request("GET", "https://test.example.com")
+            return Response(429, headers={"Retry-After": "30"}, request=request)
+
+        monkeypatch.setattr("httpx.AsyncClient.get", mock_get)
+
+        client = ReclaimClient(settings)
+        with pytest.raises(RateLimitError) as exc_info:
+            await client.get("/api/tasks")
+
+        assert "30 seconds" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_get_request_not_found(self, settings: Settings, monkeypatch: MonkeyPatch) -> None:
+        """Test GET request raises NotFoundError on 404."""
+        from reclaim_mcp.exceptions import NotFoundError
+
+        async def mock_get(*args, **kwargs):
+            request = Request("GET", "https://test.example.com")
+            return Response(404, request=request)
+
+        monkeypatch.setattr("httpx.AsyncClient.get", mock_get)
+
+        client = ReclaimClient(settings)
+        with pytest.raises(NotFoundError):
+            await client.get("/api/tasks/99999")
+
+    @pytest.mark.asyncio
+    async def test_get_request_auth_error(self, settings: Settings, monkeypatch: MonkeyPatch) -> None:
+        """Test GET request raises APIError on 401."""
+        from reclaim_mcp.exceptions import APIError
+
+        async def mock_get(*args, **kwargs):
+            request = Request("GET", "https://test.example.com")
+            return Response(401, request=request)
+
+        monkeypatch.setattr("httpx.AsyncClient.get", mock_get)
+
+        client = ReclaimClient(settings)
+        with pytest.raises(APIError) as exc_info:
+            await client.get("/api/tasks")
+
+        assert "Authentication failed" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_get_request_server_error(self, settings: Settings, monkeypatch: MonkeyPatch) -> None:
+        """Test GET request raises APIError on 500."""
+        from reclaim_mcp.exceptions import APIError
+
+        async def mock_get(*args, **kwargs):
+            request = Request("GET", "https://test.example.com")
+            return Response(500, text="Internal Server Error", request=request)
+
+        monkeypatch.setattr("httpx.AsyncClient.get", mock_get)
+
+        client = ReclaimClient(settings)
+        with pytest.raises(APIError) as exc_info:
+            await client.get("/api/tasks")
+
+        assert "API error 500" in str(exc_info.value)

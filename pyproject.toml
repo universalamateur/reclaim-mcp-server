@@ -1,7 +1,40 @@
+[project]
+name = "reclaim-mcp-server"
+version = "0.5.0"
+description = "Unofficial MCP server for Reclaim.ai calendar integration"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Falko Sieverding"}]
+requires-python = ">=3.10"
+keywords = ["mcp", "reclaim", "calendar", "ai", "fastmcp", "llm", "claude"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "fastmcp>=2.0.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.urls]
+Homepage = "https://gitlab.com/universalamateur1/reclaim-mcp-server"
+Repository = "https://gitlab.com/universalamateur1/reclaim-mcp-server"
+Documentation = "https://gitlab.com/universalamateur1/reclaim-mcp-server/-/blob/main/docs/API.md"
+
+[project.scripts]
+reclaim-mcp-server = "reclaim_mcp.server:main"
+
 [tool.poetry]
 name = "reclaim-mcp-server"
-version = "0.4.0"
-description = "MCP server for Reclaim.ai calendar integration"
+version = "0.5.0"
+description = "Unofficial MCP server for Reclaim.ai calendar integration"
 authors = ["Falko Sieverding"]
 license = "MIT"
 readme = "README.md"

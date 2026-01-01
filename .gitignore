@@ -50,3 +50,9 @@ coverage.xml
 .DS_Store
 Thumbs.db
 .secret
+
+# Claude Code
+.claude/
+
+# Local development files
+.local/

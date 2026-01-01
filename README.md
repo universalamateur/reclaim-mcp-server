@@ -1,23 +1,33 @@
 # Reclaim.ai MCP Server _(UNOFFICIAL)_
 
-> ⚠️ **UNOFFICIAL & UNAFFILIATED** – This project is **not** endorsed, sponsored, or supported by Reclaim.ai. It uses Reclaim's public API. Use at your own risk and comply with [Reclaim's Terms of Service](https://reclaim.ai/terms).
+> **UNOFFICIAL & UNAFFILIATED** – This project is **not** endorsed, sponsored, or supported by Reclaim.ai. It uses Reclaim's public API. Use at your own risk and comply with [Reclaim's Terms of Service](https://reclaim.ai/terms).
 
 A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai) built with [FastMCP](https://gofastmcp.com).
 
 ## Current Status
 
-**Version**: v0.3.0
-**Status**: Tasks + Calendar + Habits working
+**Version**: v0.5.0
+**Status**: Production-ready with best practices
 
 | Feature | Status |
 |---------|--------|
 | Task Management | ✅ Complete (9 tools) |
 | Calendar Events | ✅ Complete (3 tools) |
-| Smart Habits | ✅ Complete (7 tools) |
-| Focus Settings | 🔲 Planned (v0.4.0) |
-| Analytics | 🔲 Planned (v1.0.0) |
+| Smart Habits | ✅ Complete (14 tools) |
+| Best Practices | ✅ Complete (v0.5.0) |
+| Focus Settings | 🔲 Planned (v0.6.0) |
+| Analytics | 🔲 Planned (v0.7.0) |
 
 ## Installation
+
+### Option 1: uvx (Recommended)
+
+```bash
+# Run directly without installation
+uvx --from git+https://gitlab.com/universalamateur1/reclaim-mcp-server.git reclaim-mcp-server
+```
+
+### Option 2: Poetry
 
 ```bash
 # Clone the repo
@@ -32,12 +42,33 @@ export RECLAIM_API_KEY="your_key_here"
 # Get key from: https://app.reclaim.ai/settings/developer
 
 # Run the server
-poetry run python -m reclaim_mcp.server
+poetry run reclaim-mcp-server
 ```
 
 ## Claude Desktop Configuration
 
+### Using uvx
+
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "reclaim": {
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://gitlab.com/universalamateur1/reclaim-mcp-server.git",
+        "reclaim-mcp-server"
+      ],
+      "env": {
+        "RECLAIM_API_KEY": "your_key_here"
+      }
+    }
+  }
+}
+```
+
+### Using Poetry
 
 ```json
 {
@@ -46,7 +77,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "command": "/opt/homebrew/bin/poetry",
       "args": [
         "--directory", "/path/to/reclaim-mcp-server",
-        "run", "python", "-m", "reclaim_mcp.server"
+        "run", "reclaim-mcp-server"
       ],
       "env": {
         "RECLAIM_API_KEY": "your_key_here"
@@ -60,7 +91,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ## Available Tools
 
-### Tasks (v0.1.1) ✅
+### Tasks (9 tools) ✅
 
 | Tool | Description |
 |------|-------------|
@@ -74,7 +105,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `add_time_to_task` | Log time spent on task (uses planner API) |
 | `health_check` | Server health check |
 
-### Calendar (v0.2.0) ✅
+### Calendar (3 tools) ✅
 
 | Tool | Description |
 |------|-------------|
@@ -82,7 +113,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `list_personal_events` | List Reclaim-managed events (tasks, habits, focus) |
 | `get_event` | Get single event by calendar ID and event ID |
 
-### Smart Habits (v0.3.0) ✅
+### Smart Habits (14 tools) ✅
 
 | Tool | Description |
 |------|-------------|
@@ -93,17 +124,23 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `delete_habit` | Delete a habit |
 | `mark_habit_done` | Mark a habit instance as done |
 | `skip_habit` | Skip a habit instance |
+| `lock_habit_instance` | Lock habit instance to prevent rescheduling |
+| `unlock_habit_instance` | Unlock habit instance to allow rescheduling |
+| `start_habit` | Start a habit session now |
+| `stop_habit` | Stop a running habit session |
+| `enable_habit` | Enable a disabled habit |
+| `disable_habit` | Disable a habit without deleting |
+| `convert_event_to_habit` | Convert calendar event to habit |
 
-### Focus Settings (v0.4.0) 🔲
+## v0.5.0 Best Practices
 
-- `get_focus_settings` - Get focus time configuration
-- `update_focus_settings` - Update focus settings
+This release implements MCP server best practices:
 
-### Analytics (v1.0.0) 🔲
-
-- `get_time_analytics` - Get time tracking summary
-- `get_focus_insights` - Focus time insights
-- `list_scheduling_links` - List scheduling links
+- **LLM-Readable Errors**: All tools return clear error strings instead of raising exceptions
+- **Context Logging**: Uses FastMCP Context for operation logging
+- **Rate Limit Handling**: Graceful 429 response handling with Retry-After support
+- **TTL Caching**: Read-only endpoints cached (60-120s) with auto-invalidation on mutations
+- **PEP 621 Metadata**: Full PyPI/Smithery registry compatibility
 
 ## Development
 
@@ -117,7 +154,7 @@ poetry run isort src tests
 poetry run flake8 src tests
 poetry run mypy src
 
-# Run tests (39 tests)
+# Run tests
 poetry run pytest
 
 # Dev mode with hot reload
@@ -131,7 +168,7 @@ poetry run fastmcp inspect src/reclaim_mcp/server.py
 
 1. **KISS** - Keep It Simple, Stupid
 2. **GitLab Python Standards** - Poetry, Black, mypy, pytest
-3. **Duo Project Readiness** - Clear structure for AI assistance
+3. **MCP Best Practices** - LLM-readable errors, Context logging, caching
 4. **Incremental Releases** - MVP first, features later
 
 ## Documentation
@@ -143,6 +180,7 @@ See `docs/` folder:
 - `PLAN.md` - Implementation plan
 - `build-spec.md` - Technical specification
 - `research.md` - Landscape analysis
+- `best_practices_developing_MCP_servers_fastmcp.md` - MCP best practices guide
 
 ## Roadmap
 
@@ -151,9 +189,11 @@ See `docs/` folder:
 | v0.1.0 | Task CRUD, completion, time tracking | ✅ Released |
 | v0.1.1 | Fixed time tracking, added get_task, list_completed_tasks | ✅ Released |
 | v0.2.0 | Calendar events (list, get) | ✅ Released |
-| v0.3.0 | Smart Habits (7 tools) | ✅ Ready |
-| v0.4.0 | Focus time settings | 🔲 Planned |
-| v1.0.0 | Analytics, scheduling links, PyPI | 🔲 Planned |
+| v0.3.0 | Smart Habits (7 tools) | ✅ Released |
+| v0.4.0 | Extended Habits (14 tools total) | ✅ Released |
+| v0.5.0 | Best practices + PyPI readiness | ✅ Released |
+| v0.6.0 | Focus time settings | 🔲 Planned |
+| v0.7.0 | Analytics, scheduling links | 🔲 Planned |
 
 ## License
 

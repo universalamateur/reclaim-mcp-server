@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-01-01
+
+### Added
+
+- **MCP Best Practices Implementation**:
+  - LLM-readable error handling - all tools return clear error strings instead of raising exceptions
+  - FastMCP Context injection for operation logging (`ctx.info()`, `ctx.warning()`)
+  - Rate limit handling with Retry-After header support (429 responses)
+  - TTL caching for read-only endpoints (60-120s TTL with auto-invalidation on mutations)
+
+- **PyPI/Registry Readiness**:
+  - PEP 621 `[project]` metadata in pyproject.toml
+  - `[project.scripts]` entry point for uvx support
+  - Keywords, classifiers, and URLs for package discoverability
+
+- **New Module: `exceptions.py`**:
+  - `ReclaimError` - Base exception class
+  - `NotFoundError` - 404 responses
+  - `RateLimitError` - 429 responses with retry information
+  - `APIError` - General API errors
+
+- **New Module: `cache.py`**:
+  - `@ttl_cache(ttl)` decorator for caching async function results
+  - `invalidate_cache(prefix)` for cache invalidation
+  - `get_cache_stats()` for debugging
+
+- **New Tests**:
+  - `test_cache.py` - TTL cache, invalidation, error string exclusion
+  - Error handling tests in `test_client.py` (404, 429, 401, 500)
+
+- **Documentation**:
+  - `SECURITY.md` - Security policy and vulnerability reporting
+  - `.env.example` - Environment variable template for new users
+
+### Changed
+
+- All tool functions now accept `ctx: Context` parameter for MCP logging
+- All tool return types updated to `dict | str`, `list[dict] | str`, or `bool | str` for error handling
+- README updated with uvx installation instructions and best practices section
+- Test fixtures now auto-clear cache for test isolation
+
 ## [0.4.0] - 2026-01-01
 
 ### Added
