@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-01-01
+
+### Added
+
+- `list_completed_tasks` tool - List COMPLETE and ARCHIVED tasks
+- `get_task` tool - Get single task by ID
+- API documentation (`docs/API.md`) with key findings
+- Official Reclaim OpenAPI spec (`docs/reclaim-api-0.1.yml`)
+
+### Fixed
+
+- **Time tracking now works correctly** - `add_time_to_task` now uses the correct planner API endpoint (`POST /api/planner/log-work/task/{id}?minutes=X`) instead of PATCH. Time chunks now persist and accumulate properly.
+
+### Changed
+
+- Updated client to support query params in POST requests
+- Improved documentation with roadmap and current status
+
 ## [0.1.0] - 2026-01-01
 
 ### Added

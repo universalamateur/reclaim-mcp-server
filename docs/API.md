@@ -74,6 +74,7 @@ The API uses dedicated planner endpoints for time tracking because logging work 
 1. Recalculation of `timeChunksRemaining`
 2. Calendar event adjustments
 3. Analytics updates
+4. **Auto-completion**: When `timeChunksSpent == timeChunksRequired`, status changes to COMPLETE
 
 ### Task Status Values
 
