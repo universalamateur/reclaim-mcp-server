@@ -44,6 +44,9 @@ class ReclaimClient:
                 params=params,
             )
             response.raise_for_status()
+            # Handle empty response bodies (some endpoints return no content)
+            if not response.content:
+                return {}
             return response.json()
 
     async def patch(self, endpoint: str, data: dict[str, Any]) -> Any:

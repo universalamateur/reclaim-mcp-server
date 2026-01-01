@@ -407,6 +407,140 @@ async def skip_habit(event_id: str) -> dict:
     return await habits.skip_habit(event_id=event_id)
 
 
+@mcp.tool
+async def lock_habit_instance(event_id: str) -> dict:
+    """Lock a habit instance to prevent it from being rescheduled.
+
+    Args:
+        event_id: The event ID of the specific habit instance to lock
+
+    Returns:
+        Action result with updated events and series info.
+    """
+    return await habits.lock_habit_instance(event_id=event_id)
+
+
+@mcp.tool
+async def unlock_habit_instance(event_id: str) -> dict:
+    """Unlock a habit instance to allow it to be rescheduled.
+
+    Args:
+        event_id: The event ID of the specific habit instance to unlock
+
+    Returns:
+        Action result with updated events and series info.
+    """
+    return await habits.unlock_habit_instance(event_id=event_id)
+
+
+@mcp.tool
+async def start_habit(lineage_id: int) -> dict:
+    """Start a habit session now.
+
+    Args:
+        lineage_id: The habit lineage ID to start
+
+    Returns:
+        Action result with updated events and series info.
+    """
+    return await habits.start_habit(lineage_id=lineage_id)
+
+
+@mcp.tool
+async def stop_habit(lineage_id: int) -> dict:
+    """Stop a currently running habit session.
+
+    Args:
+        lineage_id: The habit lineage ID to stop
+
+    Returns:
+        Action result with updated events and series info.
+    """
+    return await habits.stop_habit(lineage_id=lineage_id)
+
+
+@mcp.tool
+async def enable_habit(lineage_id: int) -> dict:
+    """Enable a disabled habit to resume scheduling.
+
+    Args:
+        lineage_id: The habit lineage ID to enable
+
+    Returns:
+        Empty dict on success.
+    """
+    return await habits.enable_habit(lineage_id=lineage_id)
+
+
+@mcp.tool
+async def disable_habit(lineage_id: int) -> bool:
+    """Disable a habit to pause scheduling without deleting it.
+
+    Args:
+        lineage_id: The habit lineage ID to disable
+
+    Returns:
+        True if disabled successfully.
+    """
+    return await habits.disable_habit(lineage_id=lineage_id)
+
+
+@mcp.tool
+async def convert_event_to_habit(
+    calendar_id: int,
+    event_id: str,
+    title: str,
+    ideal_time: str,
+    duration_min_mins: int,
+    frequency: str = "WEEKLY",
+    ideal_days: Optional[list[str]] = None,
+    event_type: str = "SOLO_WORK",
+    defense_aggression: str = "DEFAULT",
+    duration_max_mins: Optional[int] = None,
+    description: Optional[str] = None,
+    enabled: bool = True,
+    time_policy_type: Optional[str] = None,
+) -> dict:
+    """Convert a calendar event into a recurring smart habit.
+
+    Note: Not all events can be converted. The API rejects recurring instances,
+    all-day events, and multi-day events. Use with short, timed, standalone events.
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to convert
+        title: Habit name/title
+        ideal_time: Preferred time in "HH:MM" format (e.g., "09:00")
+        duration_min_mins: Minimum duration in minutes
+        frequency: Recurrence (DAILY, WEEKLY, MONTHLY, YEARLY) - default WEEKLY
+        ideal_days: Days for WEEKLY frequency (MONDAY, TUESDAY, etc.)
+        event_type: Type (FOCUS, SOLO_WORK, PERSONAL, etc.) - default SOLO_WORK
+        defense_aggression: Protection level (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX) - default DEFAULT
+        duration_max_mins: Maximum duration in minutes (defaults to min duration)
+        description: Optional habit description
+        enabled: Whether habit is active (default True)
+        time_policy_type: Time policy (WORK, PERSONAL, MEETING). Auto-inferred if not provided.
+
+    Returns:
+        Created habit object.
+    """
+    return await habits.convert_event_to_habit(
+        calendar_id=calendar_id,
+        event_id=event_id,
+        title=title,
+        ideal_time=ideal_time,
+        duration_min_mins=duration_min_mins,
+        frequency=frequency,
+        ideal_days=ideal_days,
+        event_type=event_type,
+        defense_aggression=defense_aggression,
+        duration_max_mins=duration_max_mins,
+        description=description,
+        enabled=enabled,
+        time_policy_type=time_policy_type,
+    )
+
+
 def main() -> None:
     """Entry point for the MCP server."""
     mcp.run()

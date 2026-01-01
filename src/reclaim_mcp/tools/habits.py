@@ -212,3 +212,162 @@ async def skip_habit(event_id: str) -> dict:
     client = _get_client()
     result = await client.post(f"/api/smart-habits/planner/{event_id}/skip", data={})
     return result
+
+
+async def lock_habit_instance(event_id: str) -> dict:
+    """Lock a habit instance to prevent it from being rescheduled.
+
+    Args:
+        event_id: The event ID of the specific habit instance to lock
+
+    Returns:
+        SmartSeriesActionPlannedResult with events, series, and status info.
+    """
+    client = _get_client()
+    result = await client.post(f"/api/smart-habits/planner/{event_id}/lock", data={})
+    return result
+
+
+async def unlock_habit_instance(event_id: str) -> dict:
+    """Unlock a habit instance to allow it to be rescheduled.
+
+    Args:
+        event_id: The event ID of the specific habit instance to unlock
+
+    Returns:
+        SmartSeriesActionPlannedResult with events, series, and status info.
+    """
+    client = _get_client()
+    result = await client.post(f"/api/smart-habits/planner/{event_id}/unlock", data={})
+    return result
+
+
+async def start_habit(lineage_id: int) -> dict:
+    """Start a habit session now.
+
+    Args:
+        lineage_id: The habit lineage ID to start
+
+    Returns:
+        SmartSeriesActionPlannedResult with events, series, and status info.
+    """
+    client = _get_client()
+    result = await client.post(f"/api/smart-habits/planner/{lineage_id}/start", data={})
+    return result
+
+
+async def stop_habit(lineage_id: int) -> dict:
+    """Stop a currently running habit session.
+
+    Args:
+        lineage_id: The habit lineage ID to stop
+
+    Returns:
+        SmartSeriesActionPlannedResult with events, series, and status info.
+    """
+    client = _get_client()
+    result = await client.post(f"/api/smart-habits/planner/{lineage_id}/stop", data={})
+    return result
+
+
+async def enable_habit(lineage_id: int) -> dict:
+    """Enable a disabled habit to resume scheduling.
+
+    Args:
+        lineage_id: The habit lineage ID to enable
+
+    Returns:
+        Empty dict on success.
+    """
+    client = _get_client()
+    result = await client.post(f"/api/smart-habits/{lineage_id}/enable", data={})
+    return result
+
+
+async def disable_habit(lineage_id: int) -> bool:
+    """Disable a habit to pause scheduling without deleting it.
+
+    Args:
+        lineage_id: The habit lineage ID to disable
+
+    Returns:
+        True if disabled successfully.
+    """
+    client = _get_client()
+    await client.delete(f"/api/smart-habits/{lineage_id}/disable")
+    return True
+
+
+async def convert_event_to_habit(
+    calendar_id: int,
+    event_id: str,
+    title: str,
+    ideal_time: str,
+    duration_min_mins: int,
+    frequency: str = "WEEKLY",
+    ideal_days: Optional[list[str]] = None,
+    event_type: str = "SOLO_WORK",
+    defense_aggression: str = "DEFAULT",
+    duration_max_mins: Optional[int] = None,
+    description: Optional[str] = None,
+    enabled: bool = True,
+    time_policy_type: Optional[str] = None,
+) -> dict:
+    """Convert a calendar event into a recurring smart habit.
+
+    Note: Not all events can be converted. The API rejects recurring instances,
+    all-day events, and multi-day events. Use with short, timed, standalone events.
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to convert
+        title: Habit name/title
+        ideal_time: Preferred time in "HH:MM" format (e.g., "09:00")
+        duration_min_mins: Minimum duration in minutes
+        frequency: Recurrence frequency (DAILY, WEEKLY, MONTHLY, YEARLY)
+        ideal_days: Days of week for WEEKLY frequency (MONDAY, TUESDAY, etc.)
+        event_type: Type of event (FOCUS, SOLO_WORK, PERSONAL, etc.)
+        defense_aggression: How aggressively to protect time (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX)
+        duration_max_mins: Maximum duration in minutes (defaults to min duration)
+        description: Optional habit description
+        enabled: Whether habit is active (default True)
+        time_policy_type: Time policy (WORK, PERSONAL, MEETING). Auto-inferred from event_type if not provided.
+
+    Returns:
+        Created SmartHabitLineageView object.
+    """
+    client = _get_client()
+
+    # Build recurrence object
+    recurrence: dict[str, Any] = {"frequency": frequency}
+    if ideal_days:
+        recurrence["idealDays"] = ideal_days
+
+    # Determine time policy type based on event type if not explicitly provided
+    if time_policy_type is None:
+        if event_type == "PERSONAL":
+            time_policy_type = "PERSONAL"
+        else:
+            time_policy_type = "WORK"
+
+    # Normalize ideal time to HH:MM:SS format
+    if len(ideal_time) == 5:  # HH:MM format
+        ideal_time = f"{ideal_time}:00"
+
+    # Build request payload (same schema as create_habit)
+    payload: dict[str, Any] = {
+        "title": title,
+        "idealTime": ideal_time,
+        "durationMinMins": duration_min_mins,
+        "durationMaxMins": duration_max_mins or duration_min_mins,
+        "enabled": enabled,
+        "recurrence": recurrence,
+        "organizer": {"timePolicyType": time_policy_type},
+        "eventType": event_type,
+        "defenseAggression": defense_aggression,
+    }
+    if description:
+        payload["description"] = description
+
+    habit = await client.post(f"/api/smart-habits/convert/{calendar_id}/{event_id}", data=payload)
+    return habit

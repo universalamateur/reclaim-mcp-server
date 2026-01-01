@@ -218,3 +218,158 @@ class TestSkipHabit:
 
         assert result == mock_habit_action_response
         mock_client.post.assert_called_once_with("/api/smart-habits/planner/evt_abc123/skip", data={})
+
+
+class TestLockHabitInstance:
+    """Tests for lock_habit_instance function."""
+
+    @pytest.mark.asyncio
+    async def test_lock_habit_instance(self, mock_client: MagicMock, mock_habit_action_response: dict) -> None:
+        """Test lock_habit_instance calls correct endpoint."""
+        mock_client.post.return_value = mock_habit_action_response
+
+        with patch.object(habits, "_get_client", return_value=mock_client):
+            result = await habits.lock_habit_instance(event_id="evt_abc123")
+
+        assert result == mock_habit_action_response
+        mock_client.post.assert_called_once_with("/api/smart-habits/planner/evt_abc123/lock", data={})
+
+
+class TestUnlockHabitInstance:
+    """Tests for unlock_habit_instance function."""
+
+    @pytest.mark.asyncio
+    async def test_unlock_habit_instance(self, mock_client: MagicMock, mock_habit_action_response: dict) -> None:
+        """Test unlock_habit_instance calls correct endpoint."""
+        mock_client.post.return_value = mock_habit_action_response
+
+        with patch.object(habits, "_get_client", return_value=mock_client):
+            result = await habits.unlock_habit_instance(event_id="evt_abc123")
+
+        assert result == mock_habit_action_response
+        mock_client.post.assert_called_once_with("/api/smart-habits/planner/evt_abc123/unlock", data={})
+
+
+class TestStartHabit:
+    """Tests for start_habit function."""
+
+    @pytest.mark.asyncio
+    async def test_start_habit(self, mock_client: MagicMock, mock_habit_action_response: dict) -> None:
+        """Test start_habit calls correct endpoint."""
+        mock_client.post.return_value = mock_habit_action_response
+
+        with patch.object(habits, "_get_client", return_value=mock_client):
+            result = await habits.start_habit(lineage_id=12345)
+
+        assert result == mock_habit_action_response
+        mock_client.post.assert_called_once_with("/api/smart-habits/planner/12345/start", data={})
+
+
+class TestStopHabit:
+    """Tests for stop_habit function."""
+
+    @pytest.mark.asyncio
+    async def test_stop_habit(self, mock_client: MagicMock, mock_habit_action_response: dict) -> None:
+        """Test stop_habit calls correct endpoint."""
+        mock_client.post.return_value = mock_habit_action_response
+
+        with patch.object(habits, "_get_client", return_value=mock_client):
+            result = await habits.stop_habit(lineage_id=12345)
+
+        assert result == mock_habit_action_response
+        mock_client.post.assert_called_once_with("/api/smart-habits/planner/12345/stop", data={})
+
+
+class TestEnableHabit:
+    """Tests for enable_habit function."""
+
+    @pytest.mark.asyncio
+    async def test_enable_habit(self, mock_client: MagicMock) -> None:
+        """Test enable_habit calls correct endpoint."""
+        mock_client.post.return_value = {}
+
+        with patch.object(habits, "_get_client", return_value=mock_client):
+            result = await habits.enable_habit(lineage_id=12345)
+
+        assert result == {}
+        mock_client.post.assert_called_once_with("/api/smart-habits/12345/enable", data={})
+
+
+class TestDisableHabit:
+    """Tests for disable_habit function."""
+
+    @pytest.mark.asyncio
+    async def test_disable_habit(self, mock_client: MagicMock) -> None:
+        """Test disable_habit calls correct endpoint."""
+        mock_client.delete.return_value = None
+
+        with patch.object(habits, "_get_client", return_value=mock_client):
+            result = await habits.disable_habit(lineage_id=12345)
+
+        assert result is True
+        mock_client.delete.assert_called_once_with("/api/smart-habits/12345/disable")
+
+
+class TestConvertEventToHabit:
+    """Tests for convert_event_to_habit function."""
+
+    @pytest.mark.asyncio
+    async def test_convert_event_to_habit_minimal(self, mock_client: MagicMock, mock_habit_response: dict) -> None:
+        """Test convert_event_to_habit with minimal required params."""
+        mock_client.post.return_value = mock_habit_response
+
+        with patch.object(habits, "_get_client", return_value=mock_client):
+            result = await habits.convert_event_to_habit(
+                calendar_id=1001,
+                event_id="evt_xyz789",
+                title="Weekly Meeting",
+                ideal_time="09:00",
+                duration_min_mins=30,
+            )
+
+        assert result == mock_habit_response
+        call_args = mock_client.post.call_args
+        assert call_args[0][0] == "/api/smart-habits/convert/1001/evt_xyz789"
+        payload = call_args[1]["data"]
+        assert payload["title"] == "Weekly Meeting"
+        assert payload["idealTime"] == "09:00:00"  # Normalized to HH:MM:SS
+        assert payload["durationMinMins"] == 30
+        assert payload["durationMaxMins"] == 30  # Defaults to min
+        assert payload["enabled"] is True
+        assert payload["organizer"]["timePolicyType"] == "WORK"
+        assert payload["eventType"] == "SOLO_WORK"
+        assert payload["defenseAggression"] == "DEFAULT"
+        assert payload["recurrence"]["frequency"] == "WEEKLY"
+
+    @pytest.mark.asyncio
+    async def test_convert_event_to_habit_with_options(self, mock_client: MagicMock, mock_habit_response: dict) -> None:
+        """Test convert_event_to_habit with all optional params."""
+        mock_client.post.return_value = mock_habit_response
+
+        with patch.object(habits, "_get_client", return_value=mock_client):
+            result = await habits.convert_event_to_habit(
+                calendar_id=1001,
+                event_id="evt_xyz789",
+                title="Team Standup",
+                ideal_time="10:00",
+                duration_min_mins=15,
+                frequency="DAILY",
+                ideal_days=["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
+                event_type="TEAM_MEETING",
+                defense_aggression="HIGH",
+                duration_max_mins=30,
+                description="Daily team standup",
+                time_policy_type="MEETING",
+            )
+
+        assert result == mock_habit_response
+        payload = mock_client.post.call_args[1]["data"]
+        assert payload["title"] == "Team Standup"
+        assert payload["durationMinMins"] == 15
+        assert payload["durationMaxMins"] == 30
+        assert payload["eventType"] == "TEAM_MEETING"
+        assert payload["defenseAggression"] == "HIGH"
+        assert payload["organizer"]["timePolicyType"] == "MEETING"
+        assert payload["description"] == "Daily team standup"
+        assert payload["recurrence"]["frequency"] == "DAILY"
+        assert payload["recurrence"]["idealDays"] == ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]

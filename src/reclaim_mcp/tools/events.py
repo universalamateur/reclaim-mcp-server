@@ -63,8 +63,8 @@ async def list_personal_events(
     """List Reclaim-managed personal events (tasks, habits, focus time).
 
     Args:
-        start: Optional start datetime in ISO format
-        end: Optional end datetime in ISO format
+        start: Optional start date in ISO format (e.g., '2026-01-02' or '2026-01-02T00:00:00Z')
+        end: Optional end date in ISO format (e.g., '2026-01-02' or '2026-01-02T23:59:59Z')
         limit: Maximum number of events to return (default 50)
 
     Returns:
@@ -73,9 +73,9 @@ async def list_personal_events(
     client = _get_client()
     params: dict[str, Any] = {"limit": limit}
     if start:
-        params["start"] = start
+        params["start"] = _extract_date(start)
     if end:
-        params["end"] = end
+        params["end"] = _extract_date(end)
 
     events = await client.get("/api/events/personal", params=params)
     return events

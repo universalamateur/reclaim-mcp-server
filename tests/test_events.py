@@ -126,11 +126,12 @@ class TestListPersonalEvents:
             )
 
         assert result == []
+        # Dates are extracted from datetime strings (YYYY-MM-DD format required by API)
         mock_client.get.assert_called_once_with(
             "/api/events/personal",
             params={
-                "start": "2026-01-02T00:00:00Z",
-                "end": "2026-01-08T23:59:59Z",
+                "start": "2026-01-02",
+                "end": "2026-01-08",
                 "limit": 100,
             },
         )

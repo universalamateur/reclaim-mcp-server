@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-01
+
+### Added
+
+- **Extended Smart Habits Tools** (7 new tools):
+  - `lock_habit_instance` - Lock a habit instance to prevent rescheduling
+  - `unlock_habit_instance` - Unlock a habit instance to allow rescheduling
+  - `start_habit` - Start a habit session now
+  - `stop_habit` - Stop a currently running habit session
+  - `enable_habit` - Enable a disabled habit to resume scheduling
+  - `disable_habit` - Disable a habit (pause without deleting)
+  - `convert_event_to_habit` - Convert a calendar event into a recurring habit
+
+### Fixed
+
+- HTTP client now handles empty response bodies (some API endpoints return no content)
+- `list_personal_events` now correctly extracts date from datetime strings (API requires YYYY-MM-DD format)
+
 ## [0.3.0] - 2026-01-01
 
 ### Added

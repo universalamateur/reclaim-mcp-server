@@ -92,3 +92,35 @@ poetry run pytest
 # Start the MCP server
 poetry run python -m reclaim_mcp.server
 ```
+
+## Agent Instructions
+
+### Git Operations
+
+**Important**: The owner handles all git commit, push, and tagging operations manually.
+
+Do NOT:
+
+- Execute `git commit` commands
+- Execute `git push` commands
+- Execute `git tag` commands
+
+When ready to commit, provide:
+
+- A summary of changes made
+- A suggested commit message
+- Let the user handle the actual git operations
+
+### MCP Server Testing
+
+The MCP server `reclaim-dev` runs as a separate process. Code changes require:
+
+1. Testing via direct Python calls (`poetry run python -c "..."`)
+2. Or restarting Claude Code session to reload the MCP server
+
+### API Quirks (Reclaim.ai)
+
+- `idealTime` format must include seconds: `HH:MM:SS` (not `HH:MM`)
+- `defenseAggression` valid values: `DEFAULT`, `NONE`, `LOW`, `MEDIUM`, `HIGH`, `MAX`
+- `timePolicyType` valid values: `WORK`, `PERSONAL`, `MEETING`, `ONE_OFF`
+- Habit scheduling happens asynchronously - newly created habits may not have scheduled instances immediately
