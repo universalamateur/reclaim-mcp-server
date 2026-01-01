@@ -1,0 +1,20 @@
+# GitLab Duo Agent Platform Configuration
+# Configures how Duo flows execute in CI/CD pipelines
+
+image: python:3.10-slim
+
+setup_script:
+  - apt-get update && apt-get install -y --no-install-recommends git
+  - pip install --upgrade pip
+  - pip install poetry
+  - poetry config virtualenvs.in-project true
+  - poetry install
+
+cache:
+  key:
+    files:
+      - poetry.lock
+    prefix: python-deps
+  paths:
+    - .cache/pip
+    - .venv/

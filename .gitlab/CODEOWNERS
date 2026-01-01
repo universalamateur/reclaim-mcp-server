@@ -1,0 +1,12 @@
+# Default owner for all files
+* @universalamateur1
+
+# Source code
+/src/ @universalamateur1
+
+# Tests
+/tests/ @universalamateur1
+
+# Configuration
+/.gitlab-ci.yml @universalamateur1
+/pyproject.toml @universalamateur1

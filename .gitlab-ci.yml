@@ -1,11 +1,29 @@
+default:
+  image: python:3.10
+  retry: 2
+  interruptible: true
+
 stages:
   - lint
   - test
+  - security
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  SAST_EXCLUDED_PATHS: "spec,test,tests,tmp,.venv"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+include:
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
 
 cache:
+  key: ${CI_COMMIT_REF_SLUG}-python
   paths:
     - .cache/pip
     - .venv
@@ -16,10 +34,16 @@ cache:
     - poetry config virtualenvs.in-project true
     - poetry install
 
+.standard-rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
 lint:
   stage: lint
-  image: python:3.10
-  extends: .poetry-setup
+  extends:
+    - .poetry-setup
+    - .standard-rules
   script:
     - poetry run black --check src tests
     - poetry run isort --check-only src tests
@@ -28,10 +52,12 @@ lint:
 
 test:
   stage: test
-  image: python:3.10
-  extends: .poetry-setup
+  extends:
+    - .poetry-setup
+    - .standard-rules
+  needs: [lint]
   script:
-    - poetry run pytest --cov=src/reclaim_mcp --cov-report=xml
+    - poetry run pytest --cov=src/reclaim_mcp --cov-report=xml --cov-report=term
   coverage: '/TOTAL.*\s+(\d+%)/'
   artifacts:
     reports:

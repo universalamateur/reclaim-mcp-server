@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "gitlab.gitlab-workflow",
+    "ms-python.python",
+    "ms-python.black-formatter",
+    "ms-python.isort",
+    "ms-python.mypy-type-checker"
+  ]
+}
