@@ -154,15 +154,15 @@ async def add_time_to_task(
     minutes: int,
     notes: Optional[str] = None,
 ) -> dict:
-    """Log time spent on a task (increments existing time).
+    """Log time spent on a task using Reclaim's planner API.
 
     Args:
         task_id: The task ID
-        minutes: Minutes to add to the existing time spent
+        minutes: Minutes worked on the task
         notes: Optional notes about the work done
 
     Returns:
-        Updated task object with new total timeChunksSpent
+        Planner action result confirming time was logged
     """
     return await tasks.add_time_to_task(task_id=task_id, minutes=minutes, notes=notes)
 

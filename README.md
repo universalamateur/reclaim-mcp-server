@@ -115,6 +115,8 @@ poetry run fastmcp inspect src/reclaim_mcp/server.py
 
 See `docs/` folder:
 
+- `API.md` - Reclaim API reference and findings
+- `reclaim-api-0.1.yml` - Official OpenAPI spec
 - `PLAN.md` - Implementation plan
 - `build-spec.md` - Technical specification
 - `research.md` - Landscape analysis

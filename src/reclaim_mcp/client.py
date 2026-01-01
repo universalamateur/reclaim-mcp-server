@@ -29,13 +29,19 @@ class ReclaimClient:
             response.raise_for_status()
             return response.json()
 
-    async def post(self, endpoint: str, data: dict[str, Any]) -> Any:
+    async def post(
+        self,
+        endpoint: str,
+        data: dict[str, Any],
+        params: dict[str, Any] | None = None,
+    ) -> Any:
         """Make a POST request to the API."""
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{self.base_url}{endpoint}",
                 headers=self.headers,
                 json=data,
+                params=params,
             )
             response.raise_for_status()
             return response.json()

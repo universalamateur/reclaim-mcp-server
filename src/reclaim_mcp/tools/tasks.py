@@ -176,31 +176,28 @@ async def add_time_to_task(
     minutes: int,
     notes: Optional[str] = None,
 ) -> dict:
-    """Log time spent on a task (increments existing time).
+    """Log time spent on a task using the planner API.
 
     Args:
         task_id: The task ID
-        minutes: Minutes to add to the existing time spent
-        notes: Optional notes about the work done
+        minutes: Minutes worked on the task
+        notes: Optional notes about the work done (stored separately via PATCH)
 
     Returns:
-        Updated task object
+        Planner action result
     """
     client = _get_client()
 
-    # Fetch current task to get existing time spent
-    current_task = await client.get(f"/api/tasks/{task_id}")
-    current_chunks = current_task.get("timeChunksSpent", 0)
+    # Use the dedicated planner endpoint for time logging
+    # POST /api/planner/log-work/task/{taskId}?minutes=X
+    result = await client.post(
+        f"/api/planner/log-work/task/{task_id}",
+        {},
+        params={"minutes": minutes},
+    )
 
-    # Convert minutes to time chunks and add to existing
-    new_chunks = minutes // 15
-    if new_chunks < 1:
-        new_chunks = 1
-    total_chunks = current_chunks + new_chunks
-
-    payload: dict[str, Any] = {"timeChunksSpent": total_chunks}
+    # If notes provided, update them separately on the task
     if notes:
-        payload["notes"] = notes
+        await client.patch(f"/api/tasks/{task_id}", {"notes": notes})
 
-    result = await client.patch(f"/api/tasks/{task_id}", payload)
     return result

@@ -257,53 +257,47 @@ class TestAddTimeToTask:
     """Tests for add_time_to_task function."""
 
     @pytest.mark.asyncio
-    async def test_add_time_to_task(self, mock_client: MagicMock, mock_task_response: dict) -> None:
-        """Test add_time_to_task increments existing time."""
-        # Task starts with 0 chunks spent
-        mock_client.get.return_value = {"id": 12345, "timeChunksSpent": 0}
-        mock_client.patch.return_value = mock_task_response
+    async def test_add_time_to_task(self, mock_client: MagicMock) -> None:
+        """Test add_time_to_task uses planner log-work endpoint."""
+        mock_client.post.return_value = {"status": "OK"}
 
         with patch.object(tasks, "_get_client", return_value=mock_client):
             result = await tasks.add_time_to_task(task_id=12345, minutes=30)
 
-        assert result == mock_task_response
-        mock_client.get.assert_called_once_with("/api/tasks/12345")
-        mock_client.patch.assert_called_once_with("/api/tasks/12345", {"timeChunksSpent": 2})  # 0 + 30/15 = 2
-
-    @pytest.mark.asyncio
-    async def test_add_time_to_task_increments_existing(self, mock_client: MagicMock) -> None:
-        """Test add_time_to_task adds to existing time chunks."""
-        # Task already has 3 chunks spent (45 minutes)
-        mock_client.get.return_value = {"id": 12345, "timeChunksSpent": 3}
-        mock_client.patch.return_value = {"id": 12345, "timeChunksSpent": 5}
-
-        with patch.object(tasks, "_get_client", return_value=mock_client):
-            result = await tasks.add_time_to_task(task_id=12345, minutes=30)
-
-        assert result["timeChunksSpent"] == 5
-        mock_client.patch.assert_called_once_with("/api/tasks/12345", {"timeChunksSpent": 5})  # 3 + 30/15 = 5
+        assert result == {"status": "OK"}
+        mock_client.post.assert_called_once_with(
+            "/api/planner/log-work/task/12345",
+            {},
+            params={"minutes": 30},
+        )
 
     @pytest.mark.asyncio
     async def test_add_time_to_task_with_notes(self, mock_client: MagicMock) -> None:
-        """Test add_time_to_task with notes."""
-        mock_client.get.return_value = {"id": 12345, "timeChunksSpent": 0}
+        """Test add_time_to_task with notes updates task separately."""
+        mock_client.post.return_value = {"status": "OK"}
         mock_client.patch.return_value = {"id": 12345}
 
         with patch.object(tasks, "_get_client", return_value=mock_client):
             await tasks.add_time_to_task(task_id=12345, minutes=45, notes="Completed research phase")
 
-        mock_client.patch.assert_called_once_with(
-            "/api/tasks/12345",
-            {"timeChunksSpent": 3, "notes": "Completed research phase"},
+        mock_client.post.assert_called_once_with(
+            "/api/planner/log-work/task/12345",
+            {},
+            params={"minutes": 45},
         )
+        mock_client.patch.assert_called_once_with("/api/tasks/12345", {"notes": "Completed research phase"})
 
     @pytest.mark.asyncio
     async def test_add_time_to_task_small_duration(self, mock_client: MagicMock) -> None:
-        """Test add_time_to_task with duration less than 15 minutes rounds up."""
-        mock_client.get.return_value = {"id": 12345, "timeChunksSpent": 0}
-        mock_client.patch.return_value = {"id": 12345}
+        """Test add_time_to_task passes minutes directly to API."""
+        mock_client.post.return_value = {"status": "OK"}
 
         with patch.object(tasks, "_get_client", return_value=mock_client):
             await tasks.add_time_to_task(task_id=12345, minutes=5)
 
-        mock_client.patch.assert_called_once_with("/api/tasks/12345", {"timeChunksSpent": 1})  # Minimum 1 chunk
+        # API handles the conversion, we just pass minutes as-is
+        mock_client.post.assert_called_once_with(
+            "/api/planner/log-work/task/12345",
+            {},
+            params={"minutes": 5},
+        )
