@@ -94,3 +94,73 @@ def mock_events_list_response(mock_event_response: dict) -> list[dict]:
             "reclaimManaged": True,
         },
     ]
+
+
+# Habit fixtures (Phase 6)
+
+
+@pytest.fixture
+def mock_habit_response() -> dict:
+    """Sample SmartHabitLineageView response from Reclaim.ai API."""
+    return {
+        "lineageId": 12345,
+        "calendarId": 1,
+        "type": "HABIT",
+        "status": "ACTIVE",
+        "enabled": True,
+        "activeSeries": {
+            "id": 67890,
+            "title": "Morning Meditation",
+            "idealTime": "07:00",
+            "durationMinMins": 15,
+            "durationMaxMins": 30,
+            "eventType": "PERSONAL",
+            "defenseAggression": "DEFAULT",
+            "recurrence": {
+                "frequency": "DAILY",
+            },
+        },
+    }
+
+
+@pytest.fixture
+def mock_habits_list_response(mock_habit_response: dict) -> list[dict]:
+    """Sample habits list response from Reclaim.ai API."""
+    return [
+        mock_habit_response,
+        {
+            "lineageId": 12346,
+            "calendarId": 1,
+            "type": "HABIT",
+            "status": "ACTIVE",
+            "enabled": True,
+            "activeSeries": {
+                "id": 67891,
+                "title": "Weekly Review",
+                "idealTime": "16:00",
+                "durationMinMins": 60,
+                "durationMaxMins": 90,
+                "eventType": "SOLO_WORK",
+                "defenseAggression": "HIGH",
+                "recurrence": {
+                    "frequency": "WEEKLY",
+                    "idealDays": ["FRIDAY"],
+                },
+            },
+        },
+    ]
+
+
+@pytest.fixture
+def mock_habit_action_response() -> dict:
+    """Sample SmartSeriesActionPlannedResult response."""
+    return {
+        "events": [],
+        "series": {
+            "id": 67890,
+            "title": "Morning Meditation",
+            "idealTime": "07:00",
+        },
+        "userInfoMessage": "Habit marked as done",
+        "timeoutReached": False,
+    }

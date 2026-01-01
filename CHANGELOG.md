@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-01-01
+
+### Added
+
+- **Smart Habits Tools** (7 new tools):
+  - `list_habits` - List all smart habits
+  - `get_habit` - Get a single habit by lineage ID
+  - `create_habit` - Create a new smart habit with scheduling
+  - `update_habit` - Update habit properties
+  - `delete_habit` - Delete a habit
+  - `mark_habit_done` - Mark a habit instance as done
+  - `skip_habit` - Skip a habit instance
+
+### Fixed
+
+- **`create_habit` now works correctly** - Multiple API compatibility fixes:
+  - Fixed organizer field to use `timePolicyType` (WORK, PERSONAL, MEETING) instead of incorrect `email` field
+  - Fixed `idealTime` format normalization from `HH:MM` to `HH:MM:SS` as required by API
+  - Fixed `defenseAggression` default from `MEDIUM` to `DEFAULT` (valid values: DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX)
+
+### Changed
+
+- Removed `organizer_email` parameter from `create_habit` (not needed by API)
+- Added optional `time_policy_type` parameter (auto-inferred from `event_type` if not provided)
+- Updated `docs/API.md` with correct `SmartSeriesOrganizerRequest` schema
+
 ## [0.2.0] - 2026-01-01
 
 ### Added

@@ -156,6 +156,18 @@ This properly transitions status to ARCHIVED and sets the `finished` timestamp.
 | `list_personal_events` | GET /api/events/personal |
 | `get_event` | GET /api/events/{calendarId}/{eventId} |
 
+### Habit Tools (v0.3.0)
+
+| MCP Tool | API Endpoint(s) |
+|----------|-----------------|
+| `list_habits` | GET /api/smart-habits |
+| `get_habit` | GET /api/smart-habits/{lineageId} |
+| `create_habit` | POST /api/smart-habits |
+| `update_habit` | PATCH /api/smart-habits/{lineageId} |
+| `delete_habit` | DELETE /api/smart-habits/{lineageId} |
+| `mark_habit_done` | POST /api/smart-habits/planner/{eventId}/done |
+| `skip_habit` | POST /api/smart-habits/planner/{eventId}/skip |
+
 ### Event Endpoints
 
 | Endpoint | Method | Purpose |
@@ -186,3 +198,86 @@ Event:
     rsvpStatus: RsvpStatus (nullable)
     reclaimManaged: boolean
 ```
+
+### Smart Habits Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/smart-habits` | GET | List all smart habits |
+| `/api/smart-habits` | POST | Create new smart habit |
+| `/api/smart-habits/{lineageId}` | GET | Get single habit |
+| `/api/smart-habits/{lineageId}` | PATCH | Update habit |
+| `/api/smart-habits/{lineageId}` | DELETE | Delete habit |
+| `/api/smart-habits/planner/{eventId}/done` | POST | Mark habit instance done |
+| `/api/smart-habits/planner/{eventId}/skip` | POST | Skip habit instance |
+
+### Smart Habit Schema
+
+```yaml
+SmartHabitLineageView:
+  properties:
+    lineageId: int64          # Primary identifier for the habit
+    calendarId: int64
+    type: SmartSeriesType
+    status: SmartSeriesStatus
+    enabled: boolean
+    activeSeries: SmartSeriesView
+
+CreateSmartHabitRequest:
+  required:
+    - title
+    - recurrence
+    - idealTime
+    - durationMinMins
+    - enabled
+    - organizer
+    - eventType
+    - defenseAggression
+  properties:
+    title: string
+    idealTime: "HH:MM"        # Partial time format
+    durationMinMins: int32
+    durationMaxMins: int32
+    enabled: boolean
+    description: string
+    recurrence:
+      frequency: DAILY|WEEKLY|MONTHLY|YEARLY
+      idealDays: DayOfWeek[]  # For WEEKLY frequency
+    organizer:
+      timePolicyType: TimePolicyType  # NOT email - controls scheduling windows
+    eventType: SmartSeriesEventType
+    defenseAggression: DefenseAggression
+
+TimePolicyType:
+  enum:
+    - WORK       # Use work hours time policy
+    - PERSONAL   # Use personal hours time policy
+    - MEETING    # Use meeting hours time policy
+    - ONE_OFF    # Custom one-off policy
+    - INHERITED  # Inherit from parent
+    - CUSTOM     # Custom time scheme
+
+SmartSeriesEventType:
+  enum:
+    - FOCUS
+    - SOLO_WORK
+    - PERSONAL
+    - TEAM_MEETING
+    - EXTERNAL_MEETING
+    - ONE_ON_ONE
+
+DefenseAggression:
+  enum:
+    - NONE    # No protection
+    - LOW
+    - MEDIUM  # Default
+    - HIGH
+    - MAX     # Maximum protection
+```
+
+### Habit ID Types
+
+**Important**: Smart Habits use two different ID types:
+
+- **lineageId**: Identifies the habit series (used for CRUD operations)
+- **eventId**: Identifies a specific scheduled instance (used for done/skip actions)

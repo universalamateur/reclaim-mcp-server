@@ -6,14 +6,15 @@ A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai
 
 ## Current Status
 
-**Version**: v0.2.0
-**Status**: Tasks + Calendar working
+**Version**: v0.3.0
+**Status**: Tasks + Calendar + Habits working
 
 | Feature | Status |
 |---------|--------|
 | Task Management | ✅ Complete (9 tools) |
 | Calendar Events | ✅ Complete (3 tools) |
-| Habits & Focus | 🔲 Planned (v0.3.0) |
+| Smart Habits | ✅ Complete (7 tools) |
+| Focus Settings | 🔲 Planned (v0.4.0) |
 | Analytics | 🔲 Planned (v1.0.0) |
 
 ## Installation
@@ -81,11 +82,20 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `list_personal_events` | List Reclaim-managed events (tasks, habits, focus) |
 | `get_event` | Get single event by calendar ID and event ID |
 
-### Habits & Focus (v0.3.0) 🔲
+### Smart Habits (v0.3.0) ✅
 
-- `list_habits` - List smart habits
-- `create_habit` - Create recurring habit
-- `mark_habit_done` - Mark habit done for today
+| Tool | Description |
+|------|-------------|
+| `list_habits` | List all smart habits |
+| `get_habit` | Get a single habit by lineage ID |
+| `create_habit` | Create new smart habit for auto-scheduling |
+| `update_habit` | Update habit properties |
+| `delete_habit` | Delete a habit |
+| `mark_habit_done` | Mark a habit instance as done |
+| `skip_habit` | Skip a habit instance |
+
+### Focus Settings (v0.4.0) 🔲
+
 - `get_focus_settings` - Get focus time configuration
 - `update_focus_settings` - Update focus settings
 
@@ -140,8 +150,9 @@ See `docs/` folder:
 |---------|----------|--------|
 | v0.1.0 | Task CRUD, completion, time tracking | ✅ Released |
 | v0.1.1 | Fixed time tracking, added get_task, list_completed_tasks | ✅ Released |
-| v0.2.0 | Calendar events (list, get, find free slots) | ✅ Ready |
-| v0.3.0 | Habits, focus time settings | 🔲 Planned |
+| v0.2.0 | Calendar events (list, get) | ✅ Released |
+| v0.3.0 | Smart Habits (7 tools) | ✅ Ready |
+| v0.4.0 | Focus time settings | 🔲 Planned |
 | v1.0.0 | Analytics, scheduling links, PyPI | 🔲 Planned |
 
 ## License

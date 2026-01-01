@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastmcp import FastMCP
 
-from reclaim_mcp.tools import events, tasks
+from reclaim_mcp.tools import events, habits, tasks
 
 mcp = FastMCP("Reclaim.ai")
 
@@ -242,6 +242,169 @@ async def get_event(
         event_id=event_id,
         thin=thin,
     )
+
+
+# Smart Habit Tools (Phase 6)
+
+
+@mcp.tool
+async def list_habits() -> list[dict]:
+    """List all smart habits from Reclaim.ai.
+
+    Returns:
+        List of habit objects with lineageId, title, enabled, recurrence, etc.
+    """
+    return await habits.list_habits()
+
+
+@mcp.tool
+async def get_habit(lineage_id: int) -> dict:
+    """Get a single smart habit by lineage ID.
+
+    Args:
+        lineage_id: The habit lineage ID to retrieve
+
+    Returns:
+        SmartHabitLineageView object with full details.
+    """
+    return await habits.get_habit(lineage_id=lineage_id)
+
+
+@mcp.tool
+async def create_habit(
+    title: str,
+    ideal_time: str,
+    duration_min_mins: int,
+    frequency: str = "WEEKLY",
+    ideal_days: Optional[list[str]] = None,
+    event_type: str = "SOLO_WORK",
+    defense_aggression: str = "DEFAULT",
+    duration_max_mins: Optional[int] = None,
+    description: Optional[str] = None,
+    enabled: bool = True,
+    time_policy_type: Optional[str] = None,
+) -> dict:
+    """Create a new smart habit for auto-scheduling.
+
+    Args:
+        title: Habit name/title
+        ideal_time: Preferred time in "HH:MM" format (e.g., "09:00")
+        duration_min_mins: Minimum duration in minutes
+        frequency: Recurrence (DAILY, WEEKLY, MONTHLY, YEARLY) - default WEEKLY
+        ideal_days: Days for WEEKLY frequency (MONDAY, TUESDAY, etc.)
+        event_type: Type (FOCUS, SOLO_WORK, PERSONAL, etc.) - default SOLO_WORK
+        defense_aggression: Protection level (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX) - default DEFAULT
+        duration_max_mins: Maximum duration in minutes (defaults to min duration)
+        description: Optional habit description
+        enabled: Whether habit is active (default True)
+        time_policy_type: Time policy (WORK, PERSONAL, MEETING). Auto-inferred if not provided.
+
+    Returns:
+        Created habit object.
+    """
+    return await habits.create_habit(
+        title=title,
+        ideal_time=ideal_time,
+        duration_min_mins=duration_min_mins,
+        frequency=frequency,
+        ideal_days=ideal_days,
+        event_type=event_type,
+        defense_aggression=defense_aggression,
+        duration_max_mins=duration_max_mins,
+        description=description,
+        enabled=enabled,
+        time_policy_type=time_policy_type,
+    )
+
+
+@mcp.tool
+async def update_habit(
+    lineage_id: int,
+    title: Optional[str] = None,
+    ideal_time: Optional[str] = None,
+    duration_min_mins: Optional[int] = None,
+    duration_max_mins: Optional[int] = None,
+    enabled: Optional[bool] = None,
+    frequency: Optional[str] = None,
+    ideal_days: Optional[list[str]] = None,
+    event_type: Optional[str] = None,
+    defense_aggression: Optional[str] = None,
+    description: Optional[str] = None,
+) -> dict:
+    """Update an existing smart habit.
+
+    Args:
+        lineage_id: The habit lineage ID to update
+        title: New title (optional)
+        ideal_time: New preferred time in "HH:MM" format (optional)
+        duration_min_mins: New minimum duration in minutes (optional)
+        duration_max_mins: New maximum duration in minutes (optional)
+        enabled: Enable/disable the habit (optional)
+        frequency: New frequency (DAILY, WEEKLY, MONTHLY, YEARLY) (optional)
+        ideal_days: New ideal days list (optional)
+        event_type: New event type (optional)
+        defense_aggression: New defense aggression (optional)
+        description: New description (optional)
+
+    Returns:
+        Updated habit object.
+    """
+    return await habits.update_habit(
+        lineage_id=lineage_id,
+        title=title,
+        ideal_time=ideal_time,
+        duration_min_mins=duration_min_mins,
+        duration_max_mins=duration_max_mins,
+        enabled=enabled,
+        frequency=frequency,
+        ideal_days=ideal_days,
+        event_type=event_type,
+        defense_aggression=defense_aggression,
+        description=description,
+    )
+
+
+@mcp.tool
+async def delete_habit(lineage_id: int) -> bool:
+    """Delete a smart habit.
+
+    Args:
+        lineage_id: The habit lineage ID to delete
+
+    Returns:
+        True if deleted successfully.
+    """
+    return await habits.delete_habit(lineage_id=lineage_id)
+
+
+@mcp.tool
+async def mark_habit_done(event_id: str) -> dict:
+    """Mark a habit instance as done.
+
+    Use this to mark today's scheduled habit event as completed.
+
+    Args:
+        event_id: The event ID of the specific habit instance (from list_personal_events)
+
+    Returns:
+        Action result with updated events and series info.
+    """
+    return await habits.mark_habit_done(event_id=event_id)
+
+
+@mcp.tool
+async def skip_habit(event_id: str) -> dict:
+    """Skip a habit instance.
+
+    Use this to skip today's scheduled habit event without marking it done.
+
+    Args:
+        event_id: The event ID of the specific habit instance to skip
+
+    Returns:
+        Action result with updated events and series info.
+    """
+    return await habits.skip_habit(event_id=event_id)
 
 
 def main() -> None:
