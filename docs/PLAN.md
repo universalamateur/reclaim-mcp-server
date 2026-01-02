@@ -335,6 +335,21 @@ test:
 
 ## Backlog (Future Releases)
 
-### v0.7.3 (Patch)
-- [ ] Add `verify_connection` tool that calls `/api/users/current` to validate API key and connectivity
-- [ ] Update `health_check` to return version: `"OK (v0.7.3)"` using `__version__` from `__init__.py`
+### v0.7.3 (Patch) - QA Findings Fix
+
+**Based on**: QA Report v0.7.2 (2026-01-02)
+**Tool Count**: 41 → 42 (adds verify_connection)
+
+#### HIGH Priority (Must Fix)
+- [ ] Add `Field(gt=0)` validators to TaskCreate for `duration_minutes`, `min_chunk_size_minutes`
+- [ ] Add `@field_validator` for task title (strip whitespace, reject empty)
+- [ ] Fix `list_personal_events` to default to current week when no dates provided
+
+#### MEDIUM Priority (Should Fix)
+- [ ] Add `verify_connection` tool that calls `/api/users/current` to validate API key
+- [ ] Update `health_check` to return version: `"OK (v0.7.3)"` using `__version__`
+- [ ] Document `get_focus_insights` historical date limitation in API.md
+
+#### Deferred to v0.7.4
+- [ ] Investigate `restart_task` API behavior (status remains ARCHIVED after restart)
+- [ ] WEEKLY habit `ideal_days` validation improvement
