@@ -353,12 +353,12 @@ class TestConvertEventToHabit:
                 title="Team Standup",
                 ideal_time="10:00",
                 duration_min_mins=15,
-                frequency="DAILY",
+                frequency="WEEKLY",  # Changed from DAILY - ideal_days requires WEEKLY
                 ideal_days=["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
                 event_type="TEAM_MEETING",
                 defense_aggression="HIGH",
                 duration_max_mins=30,
-                description="Daily team standup",
+                description="Weekly team standup",
                 time_policy_type="MEETING",
             )
 
@@ -370,6 +370,6 @@ class TestConvertEventToHabit:
         assert payload["eventType"] == "TEAM_MEETING"
         assert payload["defenseAggression"] == "HIGH"
         assert payload["organizer"]["timePolicyType"] == "MEETING"
-        assert payload["description"] == "Daily team standup"
-        assert payload["recurrence"]["frequency"] == "DAILY"
+        assert payload["description"] == "Weekly team standup"
+        assert payload["recurrence"]["frequency"] == "WEEKLY"
         assert payload["recurrence"]["idealDays"] == ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]

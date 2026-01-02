@@ -135,7 +135,7 @@ This properly transitions status to ARCHIVED and sets the `finished` timestamp.
 
 ## MCP Server Tool Mapping
 
-### Task Tools (v0.1.x)
+### Task Tools (v0.1.x - v0.6.0)
 
 | MCP Tool | API Endpoint(s) |
 |----------|-----------------|
@@ -147,14 +147,22 @@ This properly transitions status to ARCHIVED and sets the `finished` timestamp.
 | `mark_task_complete` | POST /api/planner/done/task/{id} |
 | `delete_task` | DELETE /api/tasks/{id} |
 | `add_time_to_task` | POST /api/planner/log-work/task/{id}?minutes=X |
+| `start_task` | POST /api/planner/start/task/{id} |
+| `stop_task` | POST /api/planner/stop/task/{id} |
+| `prioritize_task` | POST /api/planner/prioritize/task/{id} |
+| `restart_task` | POST /api/planner/restart/task/{id} |
 
-### Calendar Tools (v0.2.0)
+### Calendar Tools (v0.2.0 - v0.6.0)
 
 | MCP Tool | API Endpoint(s) |
 |----------|-----------------|
 | `list_events` | GET /api/events?start=X&end=Y |
 | `list_personal_events` | GET /api/events/personal |
 | `get_event` | GET /api/events/{calendarId}/{eventId} |
+| `pin_event` | POST /api/planner/event/{calendarId}/{eventId}/pin |
+| `unpin_event` | POST /api/planner/event/{calendarId}/{eventId}/unpin |
+| `set_event_rsvp` | POST /api/planner/event/rsvp/{calendarId}/{eventId} |
+| `move_event` | POST /api/planner/event/{calendarId}/{eventId}/move |
 
 ### Habit Tools (v0.3.0)
 
@@ -281,3 +289,64 @@ DefenseAggression:
 
 - **lineageId**: Identifies the habit series (used for CRUD operations)
 - **eventId**: Identifies a specific scheduled instance (used for done/skip actions)
+
+### Analytics Tools (v0.7.0 - v0.7.1)
+
+| MCP Tool | API Endpoint(s) |
+|----------|-----------------|
+| `get_user_analytics` | GET /api/analytics/user/V3?start=X&end=Y |
+| `get_focus_insights` | GET /api/analytics/focus/insights/V3?start=X&end=Y |
+
+**Note**: Team analytics tools (`get_team_analytics`, `export_team_analytics`) were removed in v0.7.1
+as they require a Team plan and caused confusion for users on other plans.
+
+### Focus Time Tools (v0.7.0)
+
+| MCP Tool | API Endpoint(s) |
+|----------|-----------------|
+| `get_focus_settings` | GET /api/focus-settings/user |
+| `update_focus_settings` | PATCH /api/focus-settings/user/{id} |
+| `lock_focus_block` | POST /api/focus/planner/{calendarId}/{eventId}/lock |
+| `unlock_focus_block` | POST /api/focus/planner/{calendarId}/{eventId}/unlock |
+| `reschedule_focus_block` | POST /api/focus/planner/{calendarId}/{eventId}/reschedule |
+
+## Input Validation (v0.7.2)
+
+The MCP server uses Pydantic models for centralized input validation, providing clear error messages before API calls.
+
+### Validated Enums
+
+| Enum | Values | Used In |
+|------|--------|---------|
+| `HabitFrequency` | DAILY, WEEKLY, MONTHLY, YEARLY | create_habit, update_habit, convert_event_to_habit |
+| `DayOfWeek` | MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY | create_habit, update_habit (ideal_days) |
+| `EventType` | FOCUS, SOLO_WORK, PERSONAL, MEETING, TEAM_MEETING, EXTERNAL_MEETING, ONE_ON_ONE, EXTERNAL, RECLAIM_MANAGED | create_habit, update_habit |
+| `DefenseAggression` | DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX | create_habit, update_habit |
+| `TimePolicyType` | WORK, PERSONAL, MEETING | create_habit, update_habit |
+| `RsvpStatus` | ACCEPTED, DECLINED, TENTATIVE, NEEDS_ACTION | set_event_rsvp |
+
+### Validation Rules
+
+| Field | Rule | Error Message |
+|-------|------|---------------|
+| `ideal_time` | Must be HH:MM or HH:MM:SS format | "ideal_time must be in HH:MM or HH:MM:SS format (e.g., '09:00')" |
+| `ideal_time` | Hour must be 00-23 | "hour must be between 00 and 23" |
+| `ideal_time` | Minute must be 00-59 | "minute must be between 00 and 59" |
+| `duration_min_mins` | Must be > 0 | "Input should be greater than 0" |
+| `duration_max_mins` | Must be > 0 (if provided) | "Input should be greater than 0" |
+| `duration_min_mins` vs `duration_max_mins` | min cannot exceed max | "duration_min_mins cannot exceed duration_max_mins" |
+| `ideal_days` with DAILY frequency | Cannot use ideal_days with DAILY | "ideal_days cannot be used with DAILY frequency" |
+| `start_time` / `end_time` | Must be ISO format | "datetime must be in ISO format (e.g., '2026-01-02T14:00:00Z')" |
+| `start_time` vs `end_time` | start must be before end | "start_time must be before end_time" |
+
+### Error Response Format
+
+Validation errors are returned as ToolError with format:
+```
+Invalid input: <error1>; <error2>; ...
+```
+
+Example:
+```
+Invalid input: ideal_time must be in HH:MM or HH:MM:SS format (e.g., '09:00'); duration_min_mins cannot exceed duration_max_mins
+```

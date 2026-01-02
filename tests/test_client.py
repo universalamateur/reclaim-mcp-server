@@ -101,7 +101,7 @@ class TestReclaimClient:
         with pytest.raises(RateLimitError) as exc_info:
             await client.get("/api/tasks")
 
-        assert "30 seconds" in str(exc_info.value)
+        assert "30s" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_get_request_not_found(self, settings: Settings, monkeypatch: MonkeyPatch) -> None:
@@ -150,4 +150,4 @@ class TestReclaimClient:
         with pytest.raises(APIError) as exc_info:
             await client.get("/api/tasks")
 
-        assert "API error 500" in str(exc_info.value)
+        assert "server error (500)" in str(exc_info.value)

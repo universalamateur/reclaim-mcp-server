@@ -1,7 +1,7 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: v0.5.0 Complete - Ready for Public Release
-**Date**: 2026-01-01
+**Status**: v0.7.1 Complete - 41 Tools
+**Date**: 2026-01-02
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
 ---

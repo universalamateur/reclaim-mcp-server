@@ -3,17 +3,25 @@
 from typing import Any, Optional
 
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from reclaim_mcp.cache import invalidate_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
+from reclaim_mcp.models import EventMove, EventRsvp
 
 
 def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
+
+
+def _format_validation_errors(e: ValidationError) -> str:
+    """Format Pydantic validation errors into a user-friendly message."""
+    errors = "; ".join(err["msg"] for err in e.errors())
+    return f"Invalid input: {errors}"
 
 
 def _extract_date(datetime_str: str) -> str:
@@ -189,11 +197,21 @@ async def set_event_rsvp(
     Returns:
         Planner action result with updated event state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = EventRsvp(
+            calendar_id=calendar_id,
+            event_id=event_id,
+            rsvp_status=rsvp_status,  # type: ignore[arg-type]
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
         result = await client.post(
-            f"/api/planner/event/rsvp/{calendar_id}/{event_id}",
-            {"rsvpStatus": rsvp_status},
+            f"/api/planner/event/rsvp/{validated.calendar_id}/{validated.event_id}",
+            {"rsvpStatus": validated.rsvp_status.value},
         )
         invalidate_cache("list_events")
         return result
@@ -222,11 +240,22 @@ async def move_event(
     Returns:
         Planner action result with updated event state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = EventMove(
+            calendar_id=calendar_id,
+            event_id=event_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
         result = await client.post(
-            f"/api/planner/event/{calendar_id}/{event_id}/move",
-            {"start": start_time, "end": end_time},
+            f"/api/planner/event/{validated.calendar_id}/{validated.event_id}/move",
+            {"start": validated.start_time, "end": validated.end_time},
         )
         invalidate_cache("list_events")
         invalidate_cache("list_personal_events")

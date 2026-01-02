@@ -3,17 +3,25 @@
 from typing import Any, Optional
 
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
+from reclaim_mcp.models import HabitCreate, HabitUpdate
 
 
 def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
+
+
+def _format_validation_errors(e: ValidationError) -> str:
+    """Format Pydantic validation errors into a user-friendly message."""
+    errors = "; ".join(err["msg"] for err in e.errors())
+    return f"Invalid input: {errors}"
 
 
 @ttl_cache(ttl=120)
@@ -86,43 +94,61 @@ async def create_habit(
     Returns:
         Created habit object.
     """
-    # Validate: ideal_days cannot be used with DAILY frequency
-    if frequency == "DAILY" and ideal_days is not None:
-        raise ToolError("'ideal_days' cannot be used with DAILY frequency. Use WEEKLY or MONTHLY.")
+    # Validate input using Pydantic model
+    try:
+        validated = HabitCreate(
+            title=title,
+            ideal_time=ideal_time,
+            duration_min_mins=duration_min_mins,
+            duration_max_mins=duration_max_mins,
+            frequency=frequency,  # type: ignore[arg-type]
+            ideal_days=ideal_days,  # type: ignore[arg-type]
+            event_type=event_type,  # type: ignore[arg-type]
+            defense_aggression=defense_aggression,  # type: ignore[arg-type]
+            description=description,
+            enabled=enabled,
+            time_policy_type=time_policy_type,  # type: ignore[arg-type]
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
 
     try:
         client = _get_client()
 
         # Build recurrence object
-        recurrence: dict[str, Any] = {"frequency": frequency}
-        if ideal_days:
-            recurrence["idealDays"] = ideal_days
+        recurrence: dict[str, Any] = {"frequency": validated.frequency.value}
+        if validated.ideal_days:
+            recurrence["idealDays"] = [d.value for d in validated.ideal_days]
 
         # Determine time policy type based on event type if not explicitly provided
-        if time_policy_type is None:
-            if event_type == "PERSONAL":
-                time_policy_type = "PERSONAL"
+        time_policy = validated.time_policy_type
+        if time_policy is None:
+            if validated.event_type.value == "PERSONAL":
+                time_policy_str = "PERSONAL"
             else:
-                time_policy_type = "WORK"
+                time_policy_str = "WORK"
+        else:
+            time_policy_str = time_policy.value
 
         # Normalize ideal time to HH:MM:SS format
-        if len(ideal_time) == 5:  # HH:MM format
-            ideal_time = f"{ideal_time}:00"
+        ideal_time_normalized = validated.ideal_time
+        if len(ideal_time_normalized) == 5:  # HH:MM format
+            ideal_time_normalized = f"{ideal_time_normalized}:00"
 
         # Build request payload
         payload: dict[str, Any] = {
-            "title": title,
-            "idealTime": ideal_time,
-            "durationMinMins": duration_min_mins,
-            "durationMaxMins": duration_max_mins or duration_min_mins,
-            "enabled": enabled,
+            "title": validated.title,
+            "idealTime": ideal_time_normalized,
+            "durationMinMins": validated.duration_min_mins,
+            "durationMaxMins": validated.duration_max_mins or validated.duration_min_mins,
+            "enabled": validated.enabled,
             "recurrence": recurrence,
-            "organizer": {"timePolicyType": time_policy_type},
-            "eventType": event_type,
-            "defenseAggression": defense_aggression,
+            "organizer": {"timePolicyType": time_policy_str},
+            "eventType": validated.event_type.value,
+            "defenseAggression": validated.defense_aggression.value,
         }
-        if description:
-            payload["description"] = description
+        if validated.description:
+            payload["description"] = validated.description
 
         habit = await client.post("/api/smart-habits", data=payload)
         invalidate_cache("list_habits")
@@ -165,37 +191,55 @@ async def update_habit(
     Returns:
         Updated habit object.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = HabitUpdate(
+            title=title,
+            ideal_time=ideal_time,
+            duration_min_mins=duration_min_mins,
+            duration_max_mins=duration_max_mins,
+            enabled=enabled,
+            frequency=frequency,  # type: ignore[arg-type]
+            ideal_days=ideal_days,  # type: ignore[arg-type]
+            event_type=event_type,  # type: ignore[arg-type]
+            defense_aggression=defense_aggression,  # type: ignore[arg-type]
+            description=description,
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
 
         payload: dict[str, Any] = {}
-        if title is not None:
-            payload["title"] = title
-        if ideal_time is not None:
+        if validated.title is not None:
+            payload["title"] = validated.title
+        if validated.ideal_time is not None:
             # Normalize ideal time to HH:MM:SS format
-            if len(ideal_time) == 5:  # HH:MM format
-                ideal_time = f"{ideal_time}:00"
-            payload["idealTime"] = ideal_time
-        if duration_min_mins is not None:
-            payload["durationMinMins"] = duration_min_mins
-        if duration_max_mins is not None:
-            payload["durationMaxMins"] = duration_max_mins
-        if enabled is not None:
-            payload["enabled"] = enabled
-        if description is not None:
-            payload["description"] = description
-        if event_type is not None:
-            payload["eventType"] = event_type
-        if defense_aggression is not None:
-            payload["defenseAggression"] = defense_aggression
+            ideal_time_normalized = validated.ideal_time
+            if len(ideal_time_normalized) == 5:  # HH:MM format
+                ideal_time_normalized = f"{ideal_time_normalized}:00"
+            payload["idealTime"] = ideal_time_normalized
+        if validated.duration_min_mins is not None:
+            payload["durationMinMins"] = validated.duration_min_mins
+        if validated.duration_max_mins is not None:
+            payload["durationMaxMins"] = validated.duration_max_mins
+        if validated.enabled is not None:
+            payload["enabled"] = validated.enabled
+        if validated.description is not None:
+            payload["description"] = validated.description
+        if validated.event_type is not None:
+            payload["eventType"] = validated.event_type.value
+        if validated.defense_aggression is not None:
+            payload["defenseAggression"] = validated.defense_aggression.value
 
         # Build recurrence object if any recurrence fields provided
-        if frequency is not None or ideal_days is not None:
+        if validated.frequency is not None or validated.ideal_days is not None:
             recurrence: dict[str, Any] = {}
-            if frequency is not None:
-                recurrence["frequency"] = frequency
-            if ideal_days is not None:
-                recurrence["idealDays"] = ideal_days
+            if validated.frequency is not None:
+                recurrence["frequency"] = validated.frequency.value
+            if validated.ideal_days is not None:
+                recurrence["idealDays"] = [d.value for d in validated.ideal_days]
             payload["recurrence"] = recurrence
 
         habit = await client.patch(f"/api/smart-habits/{lineage_id}", data=payload)
@@ -455,39 +499,61 @@ async def convert_event_to_habit(
     Returns:
         Created habit object.
     """
+    # Validate input using Pydantic model (reuse HabitCreate for habit fields)
+    try:
+        validated = HabitCreate(
+            title=title,
+            ideal_time=ideal_time,
+            duration_min_mins=duration_min_mins,
+            duration_max_mins=duration_max_mins,
+            frequency=frequency,  # type: ignore[arg-type]
+            ideal_days=ideal_days,  # type: ignore[arg-type]
+            event_type=event_type,  # type: ignore[arg-type]
+            defense_aggression=defense_aggression,  # type: ignore[arg-type]
+            description=description,
+            enabled=enabled,
+            time_policy_type=time_policy_type,  # type: ignore[arg-type]
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
 
         # Build recurrence object
-        recurrence: dict[str, Any] = {"frequency": frequency}
-        if ideal_days:
-            recurrence["idealDays"] = ideal_days
+        recurrence: dict[str, Any] = {"frequency": validated.frequency.value}
+        if validated.ideal_days:
+            recurrence["idealDays"] = [d.value for d in validated.ideal_days]
 
         # Determine time policy type based on event type if not explicitly provided
-        if time_policy_type is None:
-            if event_type == "PERSONAL":
-                time_policy_type = "PERSONAL"
+        time_policy = validated.time_policy_type
+        if time_policy is None:
+            if validated.event_type.value == "PERSONAL":
+                time_policy_str = "PERSONAL"
             else:
-                time_policy_type = "WORK"
+                time_policy_str = "WORK"
+        else:
+            time_policy_str = time_policy.value
 
         # Normalize ideal time to HH:MM:SS format
-        if len(ideal_time) == 5:  # HH:MM format
-            ideal_time = f"{ideal_time}:00"
+        ideal_time_normalized = validated.ideal_time
+        if len(ideal_time_normalized) == 5:  # HH:MM format
+            ideal_time_normalized = f"{ideal_time_normalized}:00"
 
         # Build request payload (same schema as create_habit)
         payload: dict[str, Any] = {
-            "title": title,
-            "idealTime": ideal_time,
-            "durationMinMins": duration_min_mins,
-            "durationMaxMins": duration_max_mins or duration_min_mins,
-            "enabled": enabled,
+            "title": validated.title,
+            "idealTime": ideal_time_normalized,
+            "durationMinMins": validated.duration_min_mins,
+            "durationMaxMins": validated.duration_max_mins or validated.duration_min_mins,
+            "enabled": validated.enabled,
             "recurrence": recurrence,
-            "organizer": {"timePolicyType": time_policy_type},
-            "eventType": event_type,
-            "defenseAggression": defense_aggression,
+            "organizer": {"timePolicyType": time_policy_str},
+            "eventType": validated.event_type.value,
+            "defenseAggression": validated.defense_aggression.value,
         }
-        if description:
-            payload["description"] = description
+        if validated.description:
+            payload["description"] = validated.description
 
         habit = await client.post(
             f"/api/smart-habits/convert/{calendar_id}/{event_id}",
