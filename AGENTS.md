@@ -37,6 +37,18 @@ tests/
 - **Pydantic**: Data validation and settings
 - **Poetry**: Dependency management
 
+## Version Management
+
+**Version MUST be updated in ALL 3 locations on every release:**
+
+| File | Location |
+|------|----------|
+| `pyproject.toml` | `[project] version` |
+| `pyproject.toml` | `[tool.poetry] version` |
+| `src/reclaim_mcp/__init__.py` | `__version__` |
+
+Failure to keep these aligned causes version confusion for clients.
+
 ## Development Conventions
 
 ### Code Style

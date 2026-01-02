@@ -1,6 +1,6 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: v0.7.1 Complete - 41 Tools
+**Status**: v0.7.2 Complete - 41 Tools
 **Date**: 2026-01-02
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
@@ -330,3 +330,11 @@ test:
 - [Existing TypeScript Server](https://github.com/jj3ny/reclaim-mcp-server)
 - [GitLab Python Guide](https://docs.gitlab.com/development/python_guide/)
 - GitLab Duo-Ready project standards
+
+---
+
+## Backlog (Future Releases)
+
+### v0.7.3 (Patch)
+- [ ] Add `verify_connection` tool that calls `/api/users/current` to validate API key and connectivity
+- [ ] Update `health_check` to return version: `"OK (v0.7.3)"` using `__version__` from `__init__.py`
