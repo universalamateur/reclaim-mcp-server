@@ -6,17 +6,16 @@ A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai
 
 ## Current Status
 
-**Version**: v0.5.0
-**Status**: Production-ready with best practices
+**Version**: v0.7.1
+**Status**: Production-ready with 41 tools
 
 | Feature | Status |
 |---------|--------|
-| Task Management | ✅ Complete (9 tools) |
-| Calendar Events | ✅ Complete (3 tools) |
+| Task Management | ✅ Complete (13 tools) |
+| Calendar Events | ✅ Complete (7 tools) |
 | Smart Habits | ✅ Complete (14 tools) |
-| Best Practices | ✅ Complete (v0.5.0) |
-| Focus Settings | 🔲 Planned (v0.6.0) |
-| Analytics | 🔲 Planned (v0.7.0) |
+| Analytics | ✅ Complete (2 tools) |
+| Focus Time | ✅ Complete (5 tools) |
 
 ## Installation
 
@@ -91,7 +90,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ## Available Tools
 
-### Tasks (9 tools) ✅
+### Tasks (13 tools) ✅
 
 | Tool | Description |
 |------|-------------|
@@ -103,15 +102,23 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `mark_task_complete` | Mark task as complete |
 | `delete_task` | Delete a task |
 | `add_time_to_task` | Log time spent on task (uses planner API) |
+| `start_task` | Start working on task (timer) |
+| `stop_task` | Stop working on task |
+| `prioritize_task` | Elevate task priority |
+| `restart_task` | Restart a completed task |
 | `health_check` | Server health check |
 
-### Calendar (3 tools) ✅
+### Calendar (7 tools) ✅
 
 | Tool | Description |
 |------|-------------|
 | `list_events` | List calendar events within a time range |
 | `list_personal_events` | List Reclaim-managed events (tasks, habits, focus) |
 | `get_event` | Get single event by calendar ID and event ID |
+| `pin_event` | Lock event at current time |
+| `unpin_event` | Allow event to be rescheduled |
+| `set_event_rsvp` | Set RSVP status for event |
+| `move_event` | Reschedule event to new time |
 
 ### Smart Habits (14 tools) ✅
 
@@ -132,14 +139,32 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `disable_habit` | Disable a habit without deleting |
 | `convert_event_to_habit` | Convert calendar event to habit |
 
-## v0.5.0 Best Practices
+### Analytics (2 tools) ✅
 
-This release implements MCP server best practices:
+| Tool | Description |
+|------|-------------|
+| `get_user_analytics` | Personal productivity analytics (Pro plan) |
+| `get_focus_insights` | Focus time analysis and recommendations (Pro plan) |
 
-- **LLM-Readable Errors**: All tools return clear error strings instead of raising exceptions
+### Focus Time (5 tools) ✅
+
+| Tool | Description |
+|------|-------------|
+| `get_focus_settings` | Get current focus time settings |
+| `update_focus_settings` | Update focus duration and defense level |
+| `lock_focus_block` | Lock focus block to prevent rescheduling |
+| `unlock_focus_block` | Unlock focus block |
+| `reschedule_focus_block` | Move focus block to new time |
+
+## MCP Best Practices
+
+This server implements MCP server best practices:
+
+- **Proper Error Handling**: All tools raise `ToolError` exceptions for clear LLM error handling
 - **Context Logging**: Uses FastMCP Context for operation logging
 - **Rate Limit Handling**: Graceful 429 response handling with Retry-After support
 - **TTL Caching**: Read-only endpoints cached (60-120s) with auto-invalidation on mutations
+- **Input Validation**: Validates parameters before API calls
 - **PEP 621 Metadata**: Full PyPI/Smithery registry compatibility
 
 ## Development
@@ -192,8 +217,9 @@ See `docs/` folder:
 | v0.3.0 | Smart Habits (7 tools) | ✅ Released |
 | v0.4.0 | Extended Habits (14 tools total) | ✅ Released |
 | v0.5.0 | Best practices + PyPI readiness | ✅ Released |
-| v0.6.0 | Focus time settings | 🔲 Planned |
-| v0.7.0 | Analytics, scheduling links | 🔲 Planned |
+| v0.6.0 | Task planner tools + Event planner tools | ✅ Released |
+| v0.7.0 | Analytics (4 tools) + Focus Time (5 tools) | ✅ Released |
+| v0.7.1 | Bug fixes, ToolError refactor, remove team analytics | ✅ Released |
 
 ## License
 

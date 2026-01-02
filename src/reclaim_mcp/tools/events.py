@@ -2,6 +2,9 @@
 
 from typing import Any, Optional
 
+from fastmcp.exceptions import ToolError
+
+from reclaim_mcp.cache import invalidate_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
@@ -28,19 +31,18 @@ async def list_events(
     calendar_ids: Optional[list[int]] = None,
     event_type: Optional[str] = None,
     thin: bool = True,
-) -> list[dict] | str:
+) -> list[dict]:
     """List calendar events within a time range.
 
     Args:
-        start: Start date in ISO format (e.g., '2026-01-02' or '2026-01-02T00:00:00Z')
-        end: End date in ISO format (e.g., '2026-01-02' or '2026-01-02T23:59:59Z')
+        start: Start date (e.g., '2026-01-02' or '2026-01-02T00:00:00Z' - time is ignored)
+        end: End date (e.g., '2026-01-02' or '2026-01-02T23:59:59Z' - time is ignored)
         calendar_ids: Optional list of calendar IDs to filter by
         event_type: Optional event type filter (EXTERNAL, RECLAIM_MANAGED, etc.)
         thin: If True, return minimal event data (default True)
 
     Returns:
         List of event objects with eventId, title, eventStart, eventEnd, etc.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -57,26 +59,25 @@ async def list_events(
         events = await client.get("/api/events", params=params)
         return events
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error listing events: {e}"
+        raise ToolError(f"Error listing events: {e}")
 
 
 async def list_personal_events(
     start: Optional[str] = None,
     end: Optional[str] = None,
     limit: int = 50,
-) -> list[dict] | str:
+) -> list[dict]:
     """List Reclaim-managed personal events (tasks, habits, focus time).
 
     Args:
-        start: Optional start date in ISO format (e.g., '2026-01-02' or '2026-01-02T00:00:00Z')
-        end: Optional end date in ISO format (e.g., '2026-01-02' or '2026-01-02T23:59:59Z')
+        start: Optional start datetime in ISO format
+        end: Optional end datetime in ISO format
         limit: Maximum number of events to return (default 50)
 
     Returns:
         List of personal event objects.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -89,21 +90,20 @@ async def list_personal_events(
         events = await client.get("/api/events/personal", params=params)
         return events
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error listing personal events: {e}"
+        raise ToolError(f"Error listing personal events: {e}")
 
 
 async def get_event(
     calendar_id: int,
     event_id: str,
     thin: bool = False,
-) -> dict | str:
+) -> dict:
     """Get a single event by calendar ID and event ID.
 
-    Note: This endpoint works best with events from list_events (external calendar events).
-    Events from list_personal_events (Reclaim-managed tasks/habits) may return 404 as they
-    use a different event structure internally.
+    Note: Works best with events from list_events (external calendar events).
+    Reclaim-managed events from list_personal_events may return 404.
 
     Args:
         calendar_id: The calendar ID containing the event
@@ -112,7 +112,6 @@ async def get_event(
 
     Returns:
         Event object with full details.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -120,8 +119,121 @@ async def get_event(
         event = await client.get(f"/api/events/{calendar_id}/{event_id}", params=params)
         return event
     except NotFoundError:
-        return f"Error: Event {event_id} not found in calendar {calendar_id}."
+        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error getting event {event_id}: {e}"
+        raise ToolError(f"Error getting event {event_id}: {e}")
+
+
+async def pin_event(calendar_id: int, event_id: str) -> dict:
+    """Pin an event to lock it at its current time (prevents rescheduling).
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to pin
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/planner/event/{calendar_id}/{event_id}/pin", {})
+        invalidate_cache("list_events")
+        invalidate_cache("list_personal_events")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error pinning event {event_id}: {e}")
+
+
+async def unpin_event(calendar_id: int, event_id: str) -> dict:
+    """Unpin an event to allow it to be rescheduled by the AI.
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to unpin
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/planner/event/{calendar_id}/{event_id}/unpin", {})
+        invalidate_cache("list_events")
+        invalidate_cache("list_personal_events")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error unpinning event {event_id}: {e}")
+
+
+async def set_event_rsvp(
+    calendar_id: int,
+    event_id: str,
+    rsvp_status: str,
+) -> dict:
+    """Set RSVP status for a calendar event.
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to update RSVP for
+        rsvp_status: RSVP status (ACCEPTED, DECLINED, TENTATIVE, NEEDS_ACTION)
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    try:
+        client = _get_client()
+        result = await client.post(
+            f"/api/planner/event/rsvp/{calendar_id}/{event_id}",
+            {"rsvpStatus": rsvp_status},
+        )
+        invalidate_cache("list_events")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error setting RSVP for event {event_id}: {e}")
+
+
+async def move_event(
+    calendar_id: int,
+    event_id: str,
+    start_time: str,
+    end_time: str,
+) -> dict:
+    """Move/reschedule an event to a new time.
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to move
+        start_time: New start time in ISO format (e.g., '2026-01-02T14:00:00Z')
+        end_time: New end time in ISO format (e.g., '2026-01-02T15:00:00Z')
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    try:
+        client = _get_client()
+        result = await client.post(
+            f"/api/planner/event/{calendar_id}/{event_id}/move",
+            {"start": start_time, "end": end_time},
+        )
+        invalidate_cache("list_events")
+        invalidate_cache("list_personal_events")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error moving event {event_id}: {e}")

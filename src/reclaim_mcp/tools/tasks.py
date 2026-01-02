@@ -2,6 +2,8 @@
 
 from typing import Any, Optional
 
+from fastmcp.exceptions import ToolError
+
 from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
@@ -18,7 +20,7 @@ def _get_client() -> ReclaimClient:
 async def list_tasks(
     status: str = "NEW,SCHEDULED,IN_PROGRESS",
     limit: int = 50,
-) -> list[dict] | str:
+) -> list[dict]:
     """List active tasks from Reclaim.ai (excludes completed by default).
 
     Args:
@@ -27,7 +29,6 @@ async def list_tasks(
 
     Returns:
         List of task objects with id, title, duration, due_date, status, etc.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -35,13 +36,13 @@ async def list_tasks(
         tasks = await client.get("/api/tasks", params=params)
         return tasks
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error listing tasks: {e}"
+        raise ToolError(f"Error listing tasks: {e}")
 
 
 @ttl_cache(ttl=120)
-async def list_completed_tasks(limit: int = 50) -> list[dict] | str:
+async def list_completed_tasks(limit: int = 50) -> list[dict]:
     """List completed and archived tasks from Reclaim.ai.
 
     Args:
@@ -49,7 +50,6 @@ async def list_completed_tasks(limit: int = 50) -> list[dict] | str:
 
     Returns:
         List of completed/archived task objects.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -57,12 +57,12 @@ async def list_completed_tasks(limit: int = 50) -> list[dict] | str:
         tasks = await client.get("/api/tasks", params=params)
         return tasks
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error listing completed tasks: {e}"
+        raise ToolError(f"Error listing completed tasks: {e}")
 
 
-async def get_task(task_id: int) -> dict | str:
+async def get_task(task_id: int) -> dict:
     """Get a single task by ID.
 
     Args:
@@ -70,18 +70,17 @@ async def get_task(task_id: int) -> dict | str:
 
     Returns:
         Task object with all details.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
         task = await client.get(f"/api/tasks/{task_id}")
         return task
     except NotFoundError:
-        return f"Error: Task {task_id} not found."
+        raise ToolError(f"Task {task_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error getting task {task_id}: {e}"
+        raise ToolError(f"Error getting task {task_id}: {e}")
 
 
 async def create_task(
@@ -92,7 +91,7 @@ async def create_task(
     max_chunk_size_minutes: Optional[int] = None,
     snooze_until: Optional[str] = None,
     priority: str = "P2",
-) -> dict | str:
+) -> dict:
     """Create a new task in Reclaim.ai for auto-scheduling.
 
     Args:
@@ -106,8 +105,12 @@ async def create_task(
 
     Returns:
         Created task object.
-        Or error string if request fails.
     """
+    # Validate priority
+    valid_priorities = {"P1", "P2", "P3", "P4"}
+    if priority not in valid_priorities:
+        raise ToolError(f"Invalid priority '{priority}'. Must be one of: {valid_priorities}")
+
     try:
         client = _get_client()
 
@@ -135,9 +138,9 @@ async def create_task(
         invalidate_cache("list_completed_tasks")
         return result
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error creating task '{title}': {e}"
+        raise ToolError(f"Error creating task '{title}': {e}")
 
 
 async def update_task(
@@ -146,7 +149,7 @@ async def update_task(
     duration_minutes: Optional[int] = None,
     due_date: Optional[str] = None,
     status: Optional[str] = None,
-) -> dict | str:
+) -> dict:
     """Update an existing task in Reclaim.ai.
 
     Args:
@@ -158,7 +161,6 @@ async def update_task(
 
     Returns:
         Updated task object.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -178,14 +180,14 @@ async def update_task(
         invalidate_cache("list_completed_tasks")
         return result
     except NotFoundError:
-        return f"Error: Task {task_id} not found."
+        raise ToolError(f"Task {task_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error updating task {task_id}: {e}"
+        raise ToolError(f"Error updating task {task_id}: {e}")
 
 
-async def mark_task_complete(task_id: int) -> dict | str:
+async def mark_task_complete(task_id: int) -> dict:
     """Mark a task as complete.
 
     Args:
@@ -193,7 +195,6 @@ async def mark_task_complete(task_id: int) -> dict | str:
 
     Returns:
         Updated task object.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -202,22 +203,21 @@ async def mark_task_complete(task_id: int) -> dict | str:
         invalidate_cache("list_completed_tasks")
         return result
     except NotFoundError:
-        return f"Error: Task {task_id} not found."
+        raise ToolError(f"Task {task_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error marking task {task_id} complete: {e}"
+        raise ToolError(f"Error marking task {task_id} complete: {e}")
 
 
-async def delete_task(task_id: int) -> bool | str:
+async def delete_task(task_id: int) -> bool:
     """Delete a task from Reclaim.ai.
 
     Args:
         task_id: The task ID to delete
 
     Returns:
-        True if deleted successfully, False if not found.
-        Or error string if request fails.
+        True if deleted successfully.
     """
     try:
         client = _get_client()
@@ -226,16 +226,16 @@ async def delete_task(task_id: int) -> bool | str:
         invalidate_cache("list_completed_tasks")
         return result
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error deleting task {task_id}: {e}"
+        raise ToolError(f"Error deleting task {task_id}: {e}")
 
 
 async def add_time_to_task(
     task_id: int,
     minutes: int,
     notes: Optional[str] = None,
-) -> dict | str:
+) -> dict:
     """Log time spent on a task using the planner API.
 
     Args:
@@ -245,7 +245,6 @@ async def add_time_to_task(
 
     Returns:
         Planner action result.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -265,8 +264,97 @@ async def add_time_to_task(
         invalidate_cache("list_tasks")
         return result
     except NotFoundError:
-        return f"Error: Task {task_id} not found."
+        raise ToolError(f"Task {task_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error logging time for task {task_id}: {e}"
+        raise ToolError(f"Error logging time for task {task_id}: {e}")
+
+
+async def start_task(task_id: int) -> dict:
+    """Start working on a task (marks as IN_PROGRESS and starts timer).
+
+    Args:
+        task_id: The task ID to start
+
+    Returns:
+        Planner action result with updated task state.
+    """
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/planner/start/task/{task_id}", {})
+        invalidate_cache("list_tasks")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Task {task_id} not found")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error starting task {task_id}: {e}")
+
+
+async def stop_task(task_id: int) -> dict:
+    """Stop working on a task (pauses timer, keeps task active).
+
+    Args:
+        task_id: The task ID to stop
+
+    Returns:
+        Planner action result with updated task state.
+    """
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/planner/stop/task/{task_id}", {})
+        invalidate_cache("list_tasks")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Task {task_id} not found")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error stopping task {task_id}: {e}")
+
+
+async def prioritize_task(task_id: int) -> dict:
+    """Prioritize a task (elevates to high priority, triggers rescheduling).
+
+    Args:
+        task_id: The task ID to prioritize
+
+    Returns:
+        Planner action result with updated task state.
+    """
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/planner/prioritize/task/{task_id}", {})
+        invalidate_cache("list_tasks")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Task {task_id} not found")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error prioritizing task {task_id}: {e}")
+
+
+async def restart_task(task_id: int) -> dict:
+    """Restart a completed/archived task (returns it to active scheduling).
+
+    Args:
+        task_id: The task ID to restart
+
+    Returns:
+        Planner action result with updated task state.
+    """
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/planner/restart/task/{task_id}", {})
+        invalidate_cache("list_tasks")
+        invalidate_cache("list_completed_tasks")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Task {task_id} not found")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error restarting task {task_id}: {e}")

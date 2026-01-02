@@ -2,6 +2,8 @@
 
 from typing import Any, Optional
 
+from fastmcp.exceptions import ToolError
+
 from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
@@ -15,25 +17,24 @@ def _get_client() -> ReclaimClient:
 
 
 @ttl_cache(ttl=120)
-async def list_habits() -> list[dict] | str:
-    """List all smart habits.
+async def list_habits() -> list[dict]:
+    """List all smart habits from Reclaim.ai.
 
     Returns:
-        List of SmartHabitLineageView objects with lineageId, title, enabled, etc.
-        Or error string if request fails.
+        List of habit objects with lineageId, title, enabled, recurrence, etc.
     """
     try:
         client = _get_client()
         habits = await client.get("/api/smart-habits")
         return habits
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error listing habits: {e}"
+        raise ToolError(f"Error listing habits: {e}")
 
 
 @ttl_cache(ttl=60)
-async def get_habit(lineage_id: int) -> dict | str:
+async def get_habit(lineage_id: int) -> dict:
     """Get a single smart habit by lineage ID.
 
     Args:
@@ -41,18 +42,17 @@ async def get_habit(lineage_id: int) -> dict | str:
 
     Returns:
         SmartHabitLineageView object with full details.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
         habit = await client.get(f"/api/smart-habits/{lineage_id}")
         return habit
     except NotFoundError:
-        return f"Error: Habit {lineage_id} not found."
+        raise ToolError(f"Habit {lineage_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error getting habit {lineage_id}: {e}"
+        raise ToolError(f"Error getting habit {lineage_id}: {e}")
 
 
 async def create_habit(
@@ -67,26 +67,29 @@ async def create_habit(
     description: Optional[str] = None,
     enabled: bool = True,
     time_policy_type: Optional[str] = None,
-) -> dict | str:
-    """Create a new smart habit.
+) -> dict:
+    """Create a new smart habit for auto-scheduling.
 
     Args:
         title: Habit name/title
         ideal_time: Preferred time in "HH:MM" format (e.g., "09:00")
         duration_min_mins: Minimum duration in minutes
-        frequency: Recurrence frequency (DAILY, WEEKLY, MONTHLY, YEARLY)
-        ideal_days: Days of week for WEEKLY frequency (MONDAY, TUESDAY, etc.)
-        event_type: Type of event (FOCUS, SOLO_WORK, PERSONAL, etc.)
-        defense_aggression: How aggressively to protect time (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX)
+        frequency: Recurrence (DAILY, WEEKLY, MONTHLY, YEARLY) - default WEEKLY
+        ideal_days: Days for WEEKLY frequency (MONDAY, TUESDAY, etc.)
+        event_type: Type (FOCUS, SOLO_WORK, PERSONAL, etc.) - default SOLO_WORK
+        defense_aggression: Protection level (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX)
         duration_max_mins: Maximum duration in minutes (defaults to min duration)
         description: Optional habit description
         enabled: Whether habit is active (default True)
-        time_policy_type: Time policy (WORK, PERSONAL, MEETING). Auto-inferred from event_type if not provided.
+        time_policy_type: Time policy (WORK, PERSONAL, MEETING). Auto-inferred if not provided.
 
     Returns:
-        Created SmartHabitLineageView object.
-        Or error string if request fails.
+        Created habit object.
     """
+    # Validate: ideal_days cannot be used with DAILY frequency
+    if frequency == "DAILY" and ideal_days is not None:
+        raise ToolError("'ideal_days' cannot be used with DAILY frequency. Use WEEKLY or MONTHLY.")
+
     try:
         client = _get_client()
 
@@ -126,9 +129,9 @@ async def create_habit(
         invalidate_cache("get_habit")
         return habit
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error creating habit '{title}': {e}"
+        raise ToolError(f"Error creating habit '{title}': {e}")
 
 
 async def update_habit(
@@ -143,7 +146,7 @@ async def update_habit(
     event_type: Optional[str] = None,
     defense_aggression: Optional[str] = None,
     description: Optional[str] = None,
-) -> dict | str:
+) -> dict:
     """Update an existing smart habit.
 
     Args:
@@ -160,8 +163,7 @@ async def update_habit(
         description: New description (optional)
 
     Returns:
-        Updated SmartHabitLineageView object.
-        Or error string if request fails.
+        Updated habit object.
     """
     try:
         client = _get_client()
@@ -201,14 +203,14 @@ async def update_habit(
         invalidate_cache("get_habit")
         return habit
     except NotFoundError:
-        return f"Error: Habit {lineage_id} not found."
+        raise ToolError(f"Habit {lineage_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error updating habit {lineage_id}: {e}"
+        raise ToolError(f"Error updating habit {lineage_id}: {e}")
 
 
-async def delete_habit(lineage_id: int) -> bool | str:
+async def delete_habit(lineage_id: int) -> bool:
     """Delete a smart habit.
 
     Args:
@@ -216,7 +218,6 @@ async def delete_habit(lineage_id: int) -> bool | str:
 
     Returns:
         True if deleted successfully.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -225,20 +226,21 @@ async def delete_habit(lineage_id: int) -> bool | str:
         invalidate_cache("get_habit")
         return True
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error deleting habit {lineage_id}: {e}"
+        raise ToolError(f"Error deleting habit {lineage_id}: {e}")
 
 
-async def mark_habit_done(event_id: str) -> dict | str:
+async def mark_habit_done(event_id: str) -> dict:
     """Mark a habit instance as done.
 
+    Use this to mark today's scheduled habit event as completed.
+
     Args:
-        event_id: The event ID of the specific habit instance
+        event_id: The event ID of the specific habit instance (from list_personal_events)
 
     Returns:
-        SmartSeriesActionPlannedResult with events, series, and status info.
-        Or error string if request fails.
+        Action result with updated events and series info.
     """
     try:
         client = _get_client()
@@ -247,22 +249,23 @@ async def mark_habit_done(event_id: str) -> dict | str:
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        return f"Error: Habit event {event_id} not found."
+        raise ToolError(f"Habit event {event_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error marking habit done: {e}"
+        raise ToolError(f"Error marking habit done: {e}")
 
 
-async def skip_habit(event_id: str) -> dict | str:
+async def skip_habit(event_id: str) -> dict:
     """Skip a habit instance.
+
+    Use this to skip today's scheduled habit event without marking it done.
 
     Args:
         event_id: The event ID of the specific habit instance to skip
 
     Returns:
-        SmartSeriesActionPlannedResult with events, series, and status info.
-        Or error string if request fails.
+        Action result with updated events and series info.
     """
     try:
         client = _get_client()
@@ -271,22 +274,21 @@ async def skip_habit(event_id: str) -> dict | str:
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        return f"Error: Habit event {event_id} not found."
+        raise ToolError(f"Habit event {event_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error skipping habit: {e}"
+        raise ToolError(f"Error skipping habit: {e}")
 
 
-async def lock_habit_instance(event_id: str) -> dict | str:
+async def lock_habit_instance(event_id: str) -> dict:
     """Lock a habit instance to prevent it from being rescheduled.
 
     Args:
         event_id: The event ID of the specific habit instance to lock
 
     Returns:
-        SmartSeriesActionPlannedResult with events, series, and status info.
-        Or error string if request fails.
+        Action result with updated events and series info.
     """
     try:
         client = _get_client()
@@ -295,22 +297,21 @@ async def lock_habit_instance(event_id: str) -> dict | str:
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        return f"Error: Habit event {event_id} not found."
+        raise ToolError(f"Habit event {event_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error locking habit instance: {e}"
+        raise ToolError(f"Error locking habit instance: {e}")
 
 
-async def unlock_habit_instance(event_id: str) -> dict | str:
+async def unlock_habit_instance(event_id: str) -> dict:
     """Unlock a habit instance to allow it to be rescheduled.
 
     Args:
         event_id: The event ID of the specific habit instance to unlock
 
     Returns:
-        SmartSeriesActionPlannedResult with events, series, and status info.
-        Or error string if request fails.
+        Action result with updated events and series info.
     """
     try:
         client = _get_client()
@@ -319,22 +320,21 @@ async def unlock_habit_instance(event_id: str) -> dict | str:
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        return f"Error: Habit event {event_id} not found."
+        raise ToolError(f"Habit event {event_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error unlocking habit instance: {e}"
+        raise ToolError(f"Error unlocking habit instance: {e}")
 
 
-async def start_habit(lineage_id: int) -> dict | str:
+async def start_habit(lineage_id: int) -> dict:
     """Start a habit session now.
 
     Args:
         lineage_id: The habit lineage ID to start
 
     Returns:
-        SmartSeriesActionPlannedResult with events, series, and status info.
-        Or error string if request fails.
+        Action result with updated events and series info.
     """
     try:
         client = _get_client()
@@ -343,22 +343,21 @@ async def start_habit(lineage_id: int) -> dict | str:
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        return f"Error: Habit {lineage_id} not found."
+        raise ToolError(f"Habit {lineage_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error starting habit {lineage_id}: {e}"
+        raise ToolError(f"Error starting habit {lineage_id}: {e}")
 
 
-async def stop_habit(lineage_id: int) -> dict | str:
+async def stop_habit(lineage_id: int) -> dict:
     """Stop a currently running habit session.
 
     Args:
         lineage_id: The habit lineage ID to stop
 
     Returns:
-        SmartSeriesActionPlannedResult with events, series, and status info.
-        Or error string if request fails.
+        Action result with updated events and series info.
     """
     try:
         client = _get_client()
@@ -367,14 +366,14 @@ async def stop_habit(lineage_id: int) -> dict | str:
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        return f"Error: Habit {lineage_id} not found."
+        raise ToolError(f"Habit {lineage_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error stopping habit {lineage_id}: {e}"
+        raise ToolError(f"Error stopping habit {lineage_id}: {e}")
 
 
-async def enable_habit(lineage_id: int) -> dict | str:
+async def enable_habit(lineage_id: int) -> dict:
     """Enable a disabled habit to resume scheduling.
 
     Args:
@@ -382,7 +381,6 @@ async def enable_habit(lineage_id: int) -> dict | str:
 
     Returns:
         Empty dict on success.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -391,14 +389,14 @@ async def enable_habit(lineage_id: int) -> dict | str:
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        return f"Error: Habit {lineage_id} not found."
+        raise ToolError(f"Habit {lineage_id} not found")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error enabling habit {lineage_id}: {e}"
+        raise ToolError(f"Error enabling habit {lineage_id}: {e}")
 
 
-async def disable_habit(lineage_id: int) -> bool | str:
+async def disable_habit(lineage_id: int) -> bool:
     """Disable a habit to pause scheduling without deleting it.
 
     Args:
@@ -406,7 +404,6 @@ async def disable_habit(lineage_id: int) -> bool | str:
 
     Returns:
         True if disabled successfully.
-        Or error string if request fails.
     """
     try:
         client = _get_client()
@@ -415,9 +412,9 @@ async def disable_habit(lineage_id: int) -> bool | str:
         invalidate_cache("get_habit")
         return True
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error disabling habit {lineage_id}: {e}"
+        raise ToolError(f"Error disabling habit {lineage_id}: {e}")
 
 
 async def convert_event_to_habit(
@@ -434,7 +431,7 @@ async def convert_event_to_habit(
     description: Optional[str] = None,
     enabled: bool = True,
     time_policy_type: Optional[str] = None,
-) -> dict | str:
+) -> dict:
     """Convert a calendar event into a recurring smart habit.
 
     Note: Not all events can be converted. The API rejects recurring instances,
@@ -449,15 +446,14 @@ async def convert_event_to_habit(
         frequency: Recurrence frequency (DAILY, WEEKLY, MONTHLY, YEARLY)
         ideal_days: Days of week for WEEKLY frequency (MONDAY, TUESDAY, etc.)
         event_type: Type of event (FOCUS, SOLO_WORK, PERSONAL, etc.)
-        defense_aggression: How aggressively to protect time (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX)
+        defense_aggression: Protection level (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX)
         duration_max_mins: Maximum duration in minutes (defaults to min duration)
         description: Optional habit description
         enabled: Whether habit is active (default True)
-        time_policy_type: Time policy (WORK, PERSONAL, MEETING). Auto-inferred from event_type if not provided.
+        time_policy_type: Time policy (WORK, PERSONAL, MEETING). Auto-inferred if not provided.
 
     Returns:
-        Created SmartHabitLineageView object.
-        Or error string if request fails.
+        Created habit object.
     """
     try:
         client = _get_client()
@@ -493,13 +489,16 @@ async def convert_event_to_habit(
         if description:
             payload["description"] = description
 
-        habit = await client.post(f"/api/smart-habits/convert/{calendar_id}/{event_id}", data=payload)
+        habit = await client.post(
+            f"/api/smart-habits/convert/{calendar_id}/{event_id}",
+            data=payload,
+        )
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return habit
     except NotFoundError:
-        return f"Error: Event {event_id} not found in calendar {calendar_id}."
+        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
     except RateLimitError as e:
-        return str(e)
+        raise ToolError(str(e))
     except ReclaimError as e:
-        return f"Error converting event to habit: {e}"
+        raise ToolError(f"Error converting event to habit: {e}")

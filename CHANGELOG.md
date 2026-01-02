@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-01-02
+
+### Fixed
+
+- `get_focus_settings` now correctly returns `list[dict]` (API returns list of focus settings)
+- `create_habit` now validates that `ideal_days` cannot be used with DAILY frequency
+- All 41 tools now raise proper `ToolError` exceptions instead of returning error strings
+
+### Removed
+
+- `get_team_analytics` - plan-gated feature causing user confusion
+- `export_team_analytics` - plan-gated feature causing user confusion
+
+### Changed
+
+- Refactored all tool error handling from `dict | str` return types to proper exceptions
+- Added input validation for duration, priority, and frequency parameters
+- Added `RateLimitError` handling to all tools
+
+**Total tools: 41** (reduced from 43)
+
+## [0.7.0] - 2026-01-02
+
+### Added
+
+- **Analytics Tools** (4 new tools):
+  - `get_user_analytics` - Personal productivity analytics with time breakdowns
+  - `get_focus_insights` - Focus time analysis and recommendations
+  - `get_team_analytics` - Team productivity metrics (requires team plan)
+  - `export_team_analytics` - Export team data to CSV/JSON format
+
+- **Focus Time Tools** (5 new tools):
+  - `get_focus_settings` - Get current focus time configuration
+  - `update_focus_settings` - Update focus duration and defense aggression
+  - `lock_focus_block` - Lock a focus block to prevent rescheduling
+  - `unlock_focus_block` - Unlock a focus block to allow rescheduling
+  - `reschedule_focus_block` - Move a focus block to a different time
+
+- **New Modules**:
+  - `src/reclaim_mcp/tools/analytics.py` - Analytics functionality
+  - `src/reclaim_mcp/tools/focus.py` - Focus time management
+
+**Total tools: 43**
+
+## [0.6.0] - 2026-01-02
+
+### Added
+
+- **Task Planner Tools** (4 new tools):
+  - `start_task` - Start working on a task (marks IN_PROGRESS, starts timer)
+  - `stop_task` - Stop working on a task (pauses timer)
+  - `prioritize_task` - Elevate task priority (triggers rescheduling)
+  - `restart_task` - Restart a completed/archived task
+
+- **Event Planner Tools** (4 new tools):
+  - `pin_event` - Lock event at its current time
+  - `unpin_event` - Allow event to be rescheduled by AI
+  - `set_event_rsvp` - Set RSVP status (ACCEPTED, DECLINED, TENTATIVE, NEEDS_ACTION)
+  - `move_event` - Reschedule event to a new time slot
+
+**Total tools: 34**
+
 ## [0.5.0] - 2026-01-01
 
 ### Added

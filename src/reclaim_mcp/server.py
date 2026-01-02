@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastmcp import Context, FastMCP
 
-from reclaim_mcp.tools import events, habits, tasks
+from reclaim_mcp.tools import analytics, events, focus, habits, tasks
 
 mcp = FastMCP("Reclaim.ai")
 
@@ -15,12 +15,15 @@ def health_check() -> str:
     return "OK"
 
 
+# Task Tools
+
+
 @mcp.tool
 async def list_tasks(
     ctx: Context,
     status: str = "NEW,SCHEDULED,IN_PROGRESS",
     limit: int = 50,
-) -> list[dict] | str:
+) -> list[dict]:
     """List active tasks from Reclaim.ai (excludes completed by default).
 
     Args:
@@ -31,14 +34,11 @@ async def list_tasks(
         List of task objects with id, title, duration, due_date, status, etc.
     """
     await ctx.info(f"Listing tasks: status={status}, limit={limit}")
-    result = await tasks.list_tasks(status=status, limit=limit)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await tasks.list_tasks(status=status, limit=limit)
 
 
 @mcp.tool
-async def list_completed_tasks(ctx: Context, limit: int = 50) -> list[dict] | str:
+async def list_completed_tasks(ctx: Context, limit: int = 50) -> list[dict]:
     """List completed and archived tasks from Reclaim.ai.
 
     Args:
@@ -48,14 +48,11 @@ async def list_completed_tasks(ctx: Context, limit: int = 50) -> list[dict] | st
         List of completed/archived task objects.
     """
     await ctx.info(f"Listing completed tasks: limit={limit}")
-    result = await tasks.list_completed_tasks(limit=limit)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await tasks.list_completed_tasks(limit=limit)
 
 
 @mcp.tool
-async def get_task(ctx: Context, task_id: int) -> dict | str:
+async def get_task(ctx: Context, task_id: int) -> dict:
     """Get a single task by ID.
 
     Args:
@@ -65,10 +62,7 @@ async def get_task(ctx: Context, task_id: int) -> dict | str:
         Task object with all details.
     """
     await ctx.info(f"Getting task: id={task_id}")
-    result = await tasks.get_task(task_id=task_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await tasks.get_task(task_id=task_id)
 
 
 @mcp.tool
@@ -81,7 +75,7 @@ async def create_task(
     max_chunk_size_minutes: Optional[int] = None,
     snooze_until: Optional[str] = None,
     priority: str = "P2",
-) -> dict | str:
+) -> dict:
     """Create a new task in Reclaim.ai for auto-scheduling.
 
     Args:
@@ -96,8 +90,8 @@ async def create_task(
     Returns:
         Created task object
     """
-    await ctx.info(f"Creating task: title='{title}', duration={duration_minutes}min, priority={priority}")
-    result = await tasks.create_task(
+    await ctx.info(f"Creating task: '{title}' ({duration_minutes}min, {priority})")
+    return await tasks.create_task(
         title=title,
         duration_minutes=duration_minutes,
         due_date=due_date,
@@ -106,9 +100,6 @@ async def create_task(
         snooze_until=snooze_until,
         priority=priority,
     )
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
 
 
 @mcp.tool
@@ -119,7 +110,7 @@ async def update_task(
     duration_minutes: Optional[int] = None,
     due_date: Optional[str] = None,
     status: Optional[str] = None,
-) -> dict | str:
+) -> dict:
     """Update an existing task in Reclaim.ai.
 
     Args:
@@ -133,20 +124,17 @@ async def update_task(
         Updated task object
     """
     await ctx.info(f"Updating task: id={task_id}")
-    result = await tasks.update_task(
+    return await tasks.update_task(
         task_id=task_id,
         title=title,
         duration_minutes=duration_minutes,
         due_date=due_date,
         status=status,
     )
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
 
 
 @mcp.tool
-async def mark_task_complete(ctx: Context, task_id: int) -> dict | str:
+async def mark_task_complete(ctx: Context, task_id: int) -> dict:
     """Mark a task as complete.
 
     Args:
@@ -156,14 +144,11 @@ async def mark_task_complete(ctx: Context, task_id: int) -> dict | str:
         Updated task object
     """
     await ctx.info(f"Marking task complete: id={task_id}")
-    result = await tasks.mark_task_complete(task_id=task_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await tasks.mark_task_complete(task_id=task_id)
 
 
 @mcp.tool
-async def delete_task(ctx: Context, task_id: int) -> bool | str:
+async def delete_task(ctx: Context, task_id: int) -> bool:
     """Delete a task from Reclaim.ai.
 
     Args:
@@ -173,10 +158,7 @@ async def delete_task(ctx: Context, task_id: int) -> bool | str:
         True if deleted successfully, False otherwise
     """
     await ctx.info(f"Deleting task: id={task_id}")
-    result = await tasks.delete_task(task_id=task_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await tasks.delete_task(task_id=task_id)
 
 
 @mcp.tool
@@ -185,7 +167,7 @@ async def add_time_to_task(
     task_id: int,
     minutes: int,
     notes: Optional[str] = None,
-) -> dict | str:
+) -> dict:
     """Log time spent on a task using Reclaim's planner API.
 
     Args:
@@ -197,13 +179,66 @@ async def add_time_to_task(
         Planner action result confirming time was logged
     """
     await ctx.info(f"Logging time to task: id={task_id}, minutes={minutes}")
-    result = await tasks.add_time_to_task(task_id=task_id, minutes=minutes, notes=notes)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await tasks.add_time_to_task(task_id=task_id, minutes=minutes, notes=notes)
 
 
-# Calendar & Event Tools (Phase 5)
+@mcp.tool
+async def start_task(ctx: Context, task_id: int) -> dict:
+    """Start working on a task (marks as IN_PROGRESS and starts timer).
+
+    Args:
+        task_id: The task ID to start working on
+
+    Returns:
+        Planner action result with updated task state
+    """
+    await ctx.info(f"Starting task: id={task_id}")
+    return await tasks.start_task(task_id=task_id)
+
+
+@mcp.tool
+async def stop_task(ctx: Context, task_id: int) -> dict:
+    """Stop working on a task (pauses timer, keeps task active).
+
+    Args:
+        task_id: The task ID to stop working on
+
+    Returns:
+        Planner action result with updated task state
+    """
+    await ctx.info(f"Stopping task: id={task_id}")
+    return await tasks.stop_task(task_id=task_id)
+
+
+@mcp.tool
+async def prioritize_task(ctx: Context, task_id: int) -> dict:
+    """Prioritize a task (elevates to high priority, triggers rescheduling).
+
+    Args:
+        task_id: The task ID to prioritize
+
+    Returns:
+        Planner action result with updated task state
+    """
+    await ctx.info(f"Prioritizing task: id={task_id}")
+    return await tasks.prioritize_task(task_id=task_id)
+
+
+@mcp.tool
+async def restart_task(ctx: Context, task_id: int) -> dict:
+    """Restart a completed/archived task (returns it to active scheduling).
+
+    Args:
+        task_id: The task ID to restart
+
+    Returns:
+        Planner action result with updated task state
+    """
+    await ctx.info(f"Restarting task: id={task_id}")
+    return await tasks.restart_task(task_id=task_id)
+
+
+# Calendar & Event Tools
 
 
 @mcp.tool
@@ -214,7 +249,7 @@ async def list_events(
     calendar_ids: Optional[list[int]] = None,
     event_type: Optional[str] = None,
     thin: bool = True,
-) -> list[dict] | str:
+) -> list[dict]:
     """List calendar events within a time range.
 
     Args:
@@ -228,16 +263,13 @@ async def list_events(
         List of event objects with eventId, title, eventStart, eventEnd, etc.
     """
     await ctx.info(f"Listing events: start={start}, end={end}")
-    result = await events.list_events(
+    return await events.list_events(
         start=start,
         end=end,
         calendar_ids=calendar_ids,
         event_type=event_type,
         thin=thin,
     )
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
 
 
 @mcp.tool
@@ -246,7 +278,7 @@ async def list_personal_events(
     start: Optional[str] = None,
     end: Optional[str] = None,
     limit: int = 50,
-) -> list[dict] | str:
+) -> list[dict]:
     """List Reclaim-managed personal events (tasks, habits, focus time).
 
     Args:
@@ -258,10 +290,7 @@ async def list_personal_events(
         List of personal event objects.
     """
     await ctx.info(f"Listing personal events: limit={limit}")
-    result = await events.list_personal_events(start=start, end=end, limit=limit)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await events.list_personal_events(start=start, end=end, limit=limit)
 
 
 @mcp.tool
@@ -270,7 +299,7 @@ async def get_event(
     calendar_id: int,
     event_id: str,
     thin: bool = False,
-) -> dict | str:
+) -> dict:
     """Get a single event by calendar ID and event ID.
 
     Note: Works best with events from list_events (external calendar events).
@@ -285,35 +314,120 @@ async def get_event(
         Event object with full details.
     """
     await ctx.info(f"Getting event: calendar_id={calendar_id}, event_id={event_id}")
-    result = await events.get_event(
+    return await events.get_event(
         calendar_id=calendar_id,
         event_id=event_id,
         thin=thin,
     )
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
-
-
-# Smart Habit Tools (Phase 6)
 
 
 @mcp.tool
-async def list_habits(ctx: Context) -> list[dict] | str:
+async def pin_event(
+    ctx: Context,
+    calendar_id: int,
+    event_id: str,
+) -> dict:
+    """Pin an event to lock it at its current time (prevents rescheduling).
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to pin
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    await ctx.info(f"Pinning event: calendar_id={calendar_id}, event_id={event_id}")
+    return await events.pin_event(calendar_id=calendar_id, event_id=event_id)
+
+
+@mcp.tool
+async def unpin_event(
+    ctx: Context,
+    calendar_id: int,
+    event_id: str,
+) -> dict:
+    """Unpin an event to allow it to be rescheduled by the AI.
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to unpin
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    await ctx.info(f"Unpinning event: calendar_id={calendar_id}, event_id={event_id}")
+    return await events.unpin_event(calendar_id=calendar_id, event_id=event_id)
+
+
+@mcp.tool
+async def set_event_rsvp(
+    ctx: Context,
+    calendar_id: int,
+    event_id: str,
+    rsvp_status: str,
+) -> dict:
+    """Set RSVP status for a calendar event.
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to update RSVP for
+        rsvp_status: RSVP status (ACCEPTED, DECLINED, TENTATIVE, NEEDS_ACTION)
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    await ctx.info(f"Setting RSVP: {calendar_id}/{event_id} -> {rsvp_status}")
+    return await events.set_event_rsvp(
+        calendar_id=calendar_id,
+        event_id=event_id,
+        rsvp_status=rsvp_status,
+    )
+
+
+@mcp.tool
+async def move_event(
+    ctx: Context,
+    calendar_id: int,
+    event_id: str,
+    start_time: str,
+    end_time: str,
+) -> dict:
+    """Move/reschedule an event to a new time.
+
+    Args:
+        calendar_id: The calendar ID containing the event
+        event_id: The event ID to move
+        start_time: New start time in ISO format (e.g., '2026-01-02T14:00:00Z')
+        end_time: New end time in ISO format (e.g., '2026-01-02T15:00:00Z')
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    await ctx.info(f"Moving event: calendar_id={calendar_id}, event_id={event_id}")
+    return await events.move_event(
+        calendar_id=calendar_id,
+        event_id=event_id,
+        start_time=start_time,
+        end_time=end_time,
+    )
+
+
+# Smart Habit Tools
+
+
+@mcp.tool
+async def list_habits(ctx: Context) -> list[dict]:
     """List all smart habits from Reclaim.ai.
 
     Returns:
         List of habit objects with lineageId, title, enabled, recurrence, etc.
     """
     await ctx.info("Listing habits")
-    result = await habits.list_habits()
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.list_habits()
 
 
 @mcp.tool
-async def get_habit(ctx: Context, lineage_id: int) -> dict | str:
+async def get_habit(ctx: Context, lineage_id: int) -> dict:
     """Get a single smart habit by lineage ID.
 
     Args:
@@ -323,10 +437,7 @@ async def get_habit(ctx: Context, lineage_id: int) -> dict | str:
         SmartHabitLineageView object with full details.
     """
     await ctx.info(f"Getting habit: lineage_id={lineage_id}")
-    result = await habits.get_habit(lineage_id=lineage_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.get_habit(lineage_id=lineage_id)
 
 
 @mcp.tool
@@ -343,7 +454,7 @@ async def create_habit(
     description: Optional[str] = None,
     enabled: bool = True,
     time_policy_type: Optional[str] = None,
-) -> dict | str:
+) -> dict:
     """Create a new smart habit for auto-scheduling.
 
     Args:
@@ -353,7 +464,7 @@ async def create_habit(
         frequency: Recurrence (DAILY, WEEKLY, MONTHLY, YEARLY) - default WEEKLY
         ideal_days: Days for WEEKLY frequency (MONDAY, TUESDAY, etc.)
         event_type: Type (FOCUS, SOLO_WORK, PERSONAL, etc.) - default SOLO_WORK
-        defense_aggression: Protection level (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX) - default DEFAULT
+        defense_aggression: Protection level (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX)
         duration_max_mins: Maximum duration in minutes (defaults to min duration)
         description: Optional habit description
         enabled: Whether habit is active (default True)
@@ -362,8 +473,8 @@ async def create_habit(
     Returns:
         Created habit object.
     """
-    await ctx.info(f"Creating habit: title='{title}', ideal_time={ideal_time}, frequency={frequency}")
-    result = await habits.create_habit(
+    await ctx.info(f"Creating habit: '{title}' at {ideal_time} ({frequency})")
+    return await habits.create_habit(
         title=title,
         ideal_time=ideal_time,
         duration_min_mins=duration_min_mins,
@@ -376,9 +487,6 @@ async def create_habit(
         enabled=enabled,
         time_policy_type=time_policy_type,
     )
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
 
 
 @mcp.tool
@@ -395,7 +503,7 @@ async def update_habit(
     event_type: Optional[str] = None,
     defense_aggression: Optional[str] = None,
     description: Optional[str] = None,
-) -> dict | str:
+) -> dict:
     """Update an existing smart habit.
 
     Args:
@@ -415,7 +523,7 @@ async def update_habit(
         Updated habit object.
     """
     await ctx.info(f"Updating habit: lineage_id={lineage_id}")
-    result = await habits.update_habit(
+    return await habits.update_habit(
         lineage_id=lineage_id,
         title=title,
         ideal_time=ideal_time,
@@ -428,13 +536,10 @@ async def update_habit(
         defense_aggression=defense_aggression,
         description=description,
     )
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
 
 
 @mcp.tool
-async def delete_habit(ctx: Context, lineage_id: int) -> bool | str:
+async def delete_habit(ctx: Context, lineage_id: int) -> bool:
     """Delete a smart habit.
 
     Args:
@@ -444,14 +549,11 @@ async def delete_habit(ctx: Context, lineage_id: int) -> bool | str:
         True if deleted successfully.
     """
     await ctx.info(f"Deleting habit: lineage_id={lineage_id}")
-    result = await habits.delete_habit(lineage_id=lineage_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.delete_habit(lineage_id=lineage_id)
 
 
 @mcp.tool
-async def mark_habit_done(ctx: Context, event_id: str) -> dict | str:
+async def mark_habit_done(ctx: Context, event_id: str) -> dict:
     """Mark a habit instance as done.
 
     Use this to mark today's scheduled habit event as completed.
@@ -463,14 +565,11 @@ async def mark_habit_done(ctx: Context, event_id: str) -> dict | str:
         Action result with updated events and series info.
     """
     await ctx.info(f"Marking habit done: event_id={event_id}")
-    result = await habits.mark_habit_done(event_id=event_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.mark_habit_done(event_id=event_id)
 
 
 @mcp.tool
-async def skip_habit(ctx: Context, event_id: str) -> dict | str:
+async def skip_habit(ctx: Context, event_id: str) -> dict:
     """Skip a habit instance.
 
     Use this to skip today's scheduled habit event without marking it done.
@@ -482,14 +581,11 @@ async def skip_habit(ctx: Context, event_id: str) -> dict | str:
         Action result with updated events and series info.
     """
     await ctx.info(f"Skipping habit: event_id={event_id}")
-    result = await habits.skip_habit(event_id=event_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.skip_habit(event_id=event_id)
 
 
 @mcp.tool
-async def lock_habit_instance(ctx: Context, event_id: str) -> dict | str:
+async def lock_habit_instance(ctx: Context, event_id: str) -> dict:
     """Lock a habit instance to prevent it from being rescheduled.
 
     Args:
@@ -499,14 +595,11 @@ async def lock_habit_instance(ctx: Context, event_id: str) -> dict | str:
         Action result with updated events and series info.
     """
     await ctx.info(f"Locking habit instance: event_id={event_id}")
-    result = await habits.lock_habit_instance(event_id=event_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.lock_habit_instance(event_id=event_id)
 
 
 @mcp.tool
-async def unlock_habit_instance(ctx: Context, event_id: str) -> dict | str:
+async def unlock_habit_instance(ctx: Context, event_id: str) -> dict:
     """Unlock a habit instance to allow it to be rescheduled.
 
     Args:
@@ -516,14 +609,11 @@ async def unlock_habit_instance(ctx: Context, event_id: str) -> dict | str:
         Action result with updated events and series info.
     """
     await ctx.info(f"Unlocking habit instance: event_id={event_id}")
-    result = await habits.unlock_habit_instance(event_id=event_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.unlock_habit_instance(event_id=event_id)
 
 
 @mcp.tool
-async def start_habit(ctx: Context, lineage_id: int) -> dict | str:
+async def start_habit(ctx: Context, lineage_id: int) -> dict:
     """Start a habit session now.
 
     Args:
@@ -533,14 +623,11 @@ async def start_habit(ctx: Context, lineage_id: int) -> dict | str:
         Action result with updated events and series info.
     """
     await ctx.info(f"Starting habit: lineage_id={lineage_id}")
-    result = await habits.start_habit(lineage_id=lineage_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.start_habit(lineage_id=lineage_id)
 
 
 @mcp.tool
-async def stop_habit(ctx: Context, lineage_id: int) -> dict | str:
+async def stop_habit(ctx: Context, lineage_id: int) -> dict:
     """Stop a currently running habit session.
 
     Args:
@@ -550,14 +637,11 @@ async def stop_habit(ctx: Context, lineage_id: int) -> dict | str:
         Action result with updated events and series info.
     """
     await ctx.info(f"Stopping habit: lineage_id={lineage_id}")
-    result = await habits.stop_habit(lineage_id=lineage_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.stop_habit(lineage_id=lineage_id)
 
 
 @mcp.tool
-async def enable_habit(ctx: Context, lineage_id: int) -> dict | str:
+async def enable_habit(ctx: Context, lineage_id: int) -> dict:
     """Enable a disabled habit to resume scheduling.
 
     Args:
@@ -567,14 +651,11 @@ async def enable_habit(ctx: Context, lineage_id: int) -> dict | str:
         Empty dict on success.
     """
     await ctx.info(f"Enabling habit: lineage_id={lineage_id}")
-    result = await habits.enable_habit(lineage_id=lineage_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.enable_habit(lineage_id=lineage_id)
 
 
 @mcp.tool
-async def disable_habit(ctx: Context, lineage_id: int) -> bool | str:
+async def disable_habit(ctx: Context, lineage_id: int) -> bool:
     """Disable a habit to pause scheduling without deleting it.
 
     Args:
@@ -584,10 +665,7 @@ async def disable_habit(ctx: Context, lineage_id: int) -> bool | str:
         True if disabled successfully.
     """
     await ctx.info(f"Disabling habit: lineage_id={lineage_id}")
-    result = await habits.disable_habit(lineage_id=lineage_id)
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+    return await habits.disable_habit(lineage_id=lineage_id)
 
 
 @mcp.tool
@@ -606,7 +684,7 @@ async def convert_event_to_habit(
     description: Optional[str] = None,
     enabled: bool = True,
     time_policy_type: Optional[str] = None,
-) -> dict | str:
+) -> dict:
     """Convert a calendar event into a recurring smart habit.
 
     Note: Not all events can be converted. The API rejects recurring instances,
@@ -621,7 +699,7 @@ async def convert_event_to_habit(
         frequency: Recurrence (DAILY, WEEKLY, MONTHLY, YEARLY) - default WEEKLY
         ideal_days: Days for WEEKLY frequency (MONDAY, TUESDAY, etc.)
         event_type: Type (FOCUS, SOLO_WORK, PERSONAL, etc.) - default SOLO_WORK
-        defense_aggression: Protection level (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX) - default DEFAULT
+        defense_aggression: Protection level (DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX)
         duration_max_mins: Maximum duration in minutes (defaults to min duration)
         description: Optional habit description
         enabled: Whether habit is active (default True)
@@ -630,8 +708,8 @@ async def convert_event_to_habit(
     Returns:
         Created habit object.
     """
-    await ctx.info(f"Converting event to habit: calendar_id={calendar_id}, event_id={event_id}, title='{title}'")
-    result = await habits.convert_event_to_habit(
+    await ctx.info(f"Converting event to habit: {calendar_id}/{event_id} -> '{title}'")
+    return await habits.convert_event_to_habit(
         calendar_id=calendar_id,
         event_id=event_id,
         title=title,
@@ -646,9 +724,167 @@ async def convert_event_to_habit(
         enabled=enabled,
         time_policy_type=time_policy_type,
     )
-    if isinstance(result, str) and result.startswith("Error"):
-        await ctx.warning(result)
-    return result
+
+
+# Analytics Tools
+
+
+@mcp.tool
+async def get_user_analytics(
+    ctx: Context,
+    start: str,
+    end: str,
+    metric_names: Optional[list[str]] = None,
+) -> dict:
+    """Get personal productivity analytics for the current user.
+
+    Args:
+        start: Start date in ISO format (e.g., '2026-01-01')
+        end: End date in ISO format (e.g., '2026-01-31')
+        metric_names: Optional list of metrics (DURATION_BY_CATEGORY, etc.)
+
+    Returns:
+        Analytics data with time breakdowns by category.
+    """
+    await ctx.info(f"Getting user analytics: start={start}, end={end}")
+    return await analytics.get_user_analytics(
+        start=start,
+        end=end,
+        metric_names=metric_names,
+    )
+
+
+@mcp.tool
+async def get_focus_insights(
+    ctx: Context,
+    start: str,
+    end: str,
+) -> dict:
+    """Get focus time insights and recommendations.
+
+    Args:
+        start: Start date in ISO format (e.g., '2026-01-01')
+        end: End date in ISO format (e.g., '2026-01-31')
+
+    Returns:
+        Focus time analytics including protected hours, interruptions, etc.
+    """
+    await ctx.info(f"Getting focus insights: start={start}, end={end}")
+    return await analytics.get_focus_insights(start=start, end=end)
+
+
+# Focus Time Tools
+
+
+@mcp.tool
+async def get_focus_settings(ctx: Context) -> list[dict]:
+    """Get current focus time settings for the user.
+
+    Returns:
+        List of focus settings objects (one per focus type).
+    """
+    await ctx.info("Getting focus settings")
+    return await focus.get_focus_settings()
+
+
+@mcp.tool
+async def update_focus_settings(
+    ctx: Context,
+    settings_id: int,
+    min_duration_mins: Optional[int] = None,
+    ideal_duration_mins: Optional[int] = None,
+    max_duration_mins: Optional[int] = None,
+    defense_aggression: Optional[str] = None,
+    enabled: Optional[bool] = None,
+) -> dict:
+    """Update focus time settings.
+
+    Args:
+        settings_id: The focus settings ID to update
+        min_duration_mins: Minimum focus block duration in minutes
+        ideal_duration_mins: Ideal focus block duration in minutes
+        max_duration_mins: Maximum focus block duration in minutes
+        defense_aggression: Protection level (NONE, LOW, MEDIUM, HIGH, MAX)
+        enabled: Whether focus time is enabled
+
+    Returns:
+        Updated focus settings.
+    """
+    await ctx.info(f"Updating focus settings: id={settings_id}")
+    return await focus.update_focus_settings(
+        settings_id=settings_id,
+        min_duration_mins=min_duration_mins,
+        ideal_duration_mins=ideal_duration_mins,
+        max_duration_mins=max_duration_mins,
+        defense_aggression=defense_aggression,
+        enabled=enabled,
+    )
+
+
+@mcp.tool
+async def lock_focus_block(
+    ctx: Context,
+    calendar_id: int,
+    event_id: str,
+) -> dict:
+    """Lock a focus time block to prevent it from being rescheduled.
+
+    Args:
+        calendar_id: The calendar ID containing the focus block
+        event_id: The focus block event ID to lock
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    await ctx.info(f"Locking focus block: calendar_id={calendar_id}, event_id={event_id}")
+    return await focus.lock_focus_block(calendar_id=calendar_id, event_id=event_id)
+
+
+@mcp.tool
+async def unlock_focus_block(
+    ctx: Context,
+    calendar_id: int,
+    event_id: str,
+) -> dict:
+    """Unlock a focus time block to allow it to be rescheduled.
+
+    Args:
+        calendar_id: The calendar ID containing the focus block
+        event_id: The focus block event ID to unlock
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    await ctx.info(f"Unlocking focus block: calendar_id={calendar_id}, event_id={event_id}")
+    return await focus.unlock_focus_block(calendar_id=calendar_id, event_id=event_id)
+
+
+@mcp.tool
+async def reschedule_focus_block(
+    ctx: Context,
+    calendar_id: int,
+    event_id: str,
+    start_time: Optional[str] = None,
+    end_time: Optional[str] = None,
+) -> dict:
+    """Reschedule a focus time block to a different time.
+
+    Args:
+        calendar_id: The calendar ID containing the focus block
+        event_id: The focus block event ID to reschedule
+        start_time: New start time in ISO format (optional, triggers AI reschedule if not provided)
+        end_time: New end time in ISO format (optional)
+
+    Returns:
+        Planner action result with updated event state.
+    """
+    await ctx.info(f"Rescheduling focus block: calendar_id={calendar_id}, event_id={event_id}")
+    return await focus.reschedule_focus_block(
+        calendar_id=calendar_id,
+        event_id=event_id,
+        start_time=start_time,
+        end_time=end_time,
+    )
 
 
 def main() -> None:

@@ -33,7 +33,7 @@ class ReclaimClient:
         """
         if response.status_code == 429:
             retry_after = response.headers.get("Retry-After", "60")
-            raise RateLimitError(f"Rate limit exceeded. Please wait {retry_after} seconds before retrying.")
+            raise RateLimitError(f"Rate limit exceeded. Wait {retry_after}s before retrying.")
         if response.status_code == 404:
             raise NotFoundError(f"Resource not found: {endpoint}")
         if response.status_code == 401:
