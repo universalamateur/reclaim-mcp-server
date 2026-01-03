@@ -337,7 +337,7 @@ test:
 
 ### v0.8.0 (Minor) - Distribution Ready
 
-**Goal**: Public release with tool profiles and distribution via PyPI/Smithery.
+**Goal**: Public release with tool profiles, CI/CD release pipeline, and distribution via PyPI/Smithery.
 
 #### Tool Profiles
 
@@ -354,6 +354,18 @@ Environment variable: `RECLAIM_TOOL_PROFILE`
 - `start_habit`, `stop_habit`, `lock_habit_instance`, `unlock_habit_instance`
 - `convert_event_to_habit`
 
+#### GitLab CI Release Pipeline
+
+Tag-based release automation:
+
+- [ ] Add `release` stage to `.gitlab-ci.yml`
+- [ ] Create `build` job: `poetry build` (wheel + sdist)
+- [ ] Create `publish-pypi` job: publish to PyPI via `twine` or `poetry publish`
+- [ ] Create `publish-gitlab` job: publish to GitLab Package Registry
+- [ ] Add CI/CD variables: `PYPI_TOKEN`, `TWINE_USERNAME`, `TWINE_PASSWORD`
+- [ ] Configure release rules: `if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/`
+- [ ] Create GitLab Release with changelog via `release-cli`
+
 #### Distribution
 
 - [ ] PyPI publication (`pip install reclaim-mcp-server` / `uvx reclaim-mcp-server`)
@@ -367,6 +379,14 @@ Environment variable: `RECLAIM_TOOL_PROFILE`
 - [ ] Create `@register_tool_if_enabled(name)` decorator
 - [ ] Apply decorator to all tools in `server.py`
 - [ ] Polish README (installation, usage, examples, env vars)
+
+#### Documentation Fixes (Backlog from v0.7.3)
+
+- [ ] Update README.md version to v0.7.3 with 42 tools
+- [ ] Add v0.7.2 and v0.7.3 entries to CHANGELOG.md
+- [ ] Add v0.7.2 and v0.7.3 to README roadmap table
+- [ ] Add `verify_connection` tool to README Available Tools
+- [ ] Move `health_check` from Tasks to Utility section in README
 
 ---
 

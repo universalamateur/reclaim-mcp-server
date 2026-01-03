@@ -2,13 +2,17 @@
 
 This is a Python MCP (Model Context Protocol) server for Reclaim.ai integration, built with FastMCP.
 
+**Current Version**: v0.7.3 (42 tools)
+
 ## Purpose
 
-Provides MCP tools for AI assistants to interact with Reclaim.ai's task management API, enabling:
-- Task listing and filtering
-- Task creation with auto-scheduling
-- Task updates and completion
-- Time tracking
+Provides MCP tools for AI assistants to interact with Reclaim.ai's API, enabling:
+- Task management (13 tools)
+- Calendar events (7 tools)
+- Smart habits (14 tools)
+- Analytics (2 tools)
+- Focus time (5 tools)
+- Utility (1 tool)
 
 ## Directory Structure
 
@@ -18,15 +22,22 @@ src/reclaim_mcp/
 ├── server.py             # FastMCP server and tool definitions
 ├── config.py             # Pydantic Settings for API configuration
 ├── client.py             # Async httpx client for Reclaim API
+├── cache.py              # TTL caching with @ttl_cache
+├── exceptions.py         # Custom exceptions
 ├── models.py             # Pydantic models for data validation
 └── tools/
-    └── tasks.py          # Task management functions
+    ├── tasks.py          # Task management (13 tools)
+    ├── events.py         # Calendar events (7 tools)
+    ├── habits.py         # Smart habits (14 tools)
+    ├── analytics.py      # Analytics (2 tools)
+    └── focus.py          # Focus time (5 tools)
 
 tests/
 ├── conftest.py           # Pytest fixtures
 ├── test_client.py        # API client tests
 ├── test_models.py        # Model validation tests
-└── test_server.py        # Server tests
+├── test_events.py        # Event tools tests
+└── test_server.py        # Server tests (includes version assertion)
 ```
 
 ## Technology Stack
@@ -39,13 +50,16 @@ tests/
 
 ## Version Management
 
-**Version MUST be updated in ALL 3 locations on every release:**
+**Version MUST be updated in ALL locations on every release:**
 
 | File | Location |
 |------|----------|
 | `pyproject.toml` | `[project] version` |
 | `pyproject.toml` | `[tool.poetry] version` |
 | `src/reclaim_mcp/__init__.py` | `__version__` |
+| `tests/test_server.py` | Version assertion |
+
+Note: `health_check` returns version automatically via `__version__` import.
 
 Failure to keep these aligned causes version confusion for clients.
 
