@@ -194,6 +194,7 @@ async def set_event_rsvp(
     calendar_id: int,
     event_id: str,
     rsvp_status: str,
+    send_updates: bool = True,
 ) -> dict:
     """Set RSVP status for a calendar event.
 
@@ -201,6 +202,7 @@ async def set_event_rsvp(
         calendar_id: The calendar ID containing the event
         event_id: The event ID to update RSVP for
         rsvp_status: RSVP status (ACCEPTED, DECLINED, TENTATIVE, NEEDS_ACTION)
+        send_updates: Whether to send update notifications (default True)
 
     Returns:
         Planner action result with updated event state.
@@ -217,9 +219,12 @@ async def set_event_rsvp(
 
     try:
         client = _get_client()
-        result = await client.post(
+        result = await client.put(
             f"/api/planner/event/rsvp/{validated.calendar_id}/{validated.event_id}",
-            {"rsvpStatus": validated.rsvp_status.value},
+            {
+                "responseStatus": validated.rsvp_status.value,
+                "sendUpdates": send_updates,
+            },
         )
         invalidate_cache("list_events")
         return result
@@ -232,7 +237,6 @@ async def set_event_rsvp(
 
 
 async def move_event(
-    calendar_id: int,
     event_id: str,
     start_time: str,
     end_time: str,
@@ -240,7 +244,6 @@ async def move_event(
     """Move/reschedule an event to a new time.
 
     Args:
-        calendar_id: The calendar ID containing the event
         event_id: The event ID to move
         start_time: New start time in ISO format (e.g., '2026-01-02T14:00:00Z')
         end_time: New end time in ISO format (e.g., '2026-01-02T15:00:00Z')
@@ -251,7 +254,6 @@ async def move_event(
     # Validate input using Pydantic model
     try:
         validated = EventMove(
-            calendar_id=calendar_id,
             event_id=event_id,
             start_time=start_time,
             end_time=end_time,
@@ -261,15 +263,17 @@ async def move_event(
 
     try:
         client = _get_client()
+        # v1 API: uses query params instead of body
         result = await client.post(
-            f"/api/planner/event/{validated.calendar_id}/{validated.event_id}/move",
-            {"start": validated.start_time, "end": validated.end_time},
+            f"/api/planner/event/move/{validated.event_id}",
+            {},  # Empty body
+            params={"start": validated.start_time, "end": validated.end_time},
         )
         invalidate_cache("list_events")
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
-        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
+        raise ToolError(f"Event {event_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:

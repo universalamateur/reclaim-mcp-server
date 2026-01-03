@@ -391,6 +391,7 @@ async def set_event_rsvp(
     calendar_id: int,
     event_id: str,
     rsvp_status: str,
+    send_updates: bool = True,
 ) -> dict:
     """Set RSVP status for a calendar event.
 
@@ -398,6 +399,7 @@ async def set_event_rsvp(
         calendar_id: The calendar ID containing the event
         event_id: The event ID to update RSVP for
         rsvp_status: RSVP status (ACCEPTED, DECLINED, TENTATIVE, NEEDS_ACTION)
+        send_updates: Whether to send update notifications (default True)
 
     Returns:
         Planner action result with updated event state.
@@ -407,13 +409,13 @@ async def set_event_rsvp(
         calendar_id=calendar_id,
         event_id=event_id,
         rsvp_status=rsvp_status,
+        send_updates=send_updates,
     )
 
 
 @mcp.tool
 async def move_event(
     ctx: Context,
-    calendar_id: int,
     event_id: str,
     start_time: str,
     end_time: str,
@@ -421,7 +423,6 @@ async def move_event(
     """Move/reschedule an event to a new time.
 
     Args:
-        calendar_id: The calendar ID containing the event
         event_id: The event ID to move
         start_time: New start time in ISO format (e.g., '2026-01-02T14:00:00Z')
         end_time: New end time in ISO format (e.g., '2026-01-02T15:00:00Z')
@@ -429,9 +430,8 @@ async def move_event(
     Returns:
         Planner action result with updated event state.
     """
-    await ctx.info(f"Moving event: calendar_id={calendar_id}, event_id={event_id}")
+    await ctx.info(f"Moving event: event_id={event_id}")
     return await events.move_event(
-        calendar_id=calendar_id,
         event_id=event_id,
         start_time=start_time,
         end_time=end_time,
@@ -760,23 +760,27 @@ async def get_user_analytics(
     ctx: Context,
     start: str,
     end: str,
-    metric_names: Optional[list[str]] = None,
+    metric_name: str,
 ) -> dict:
     """Get personal productivity analytics for the current user.
 
     Args:
         start: Start date in ISO format (e.g., '2026-01-01')
         end: End date in ISO format (e.g., '2026-01-31')
-        metric_names: Optional list of metrics (DURATION_BY_CATEGORY, etc.)
+        metric_name: The metric to retrieve. One of:
+            - DURATION_BY_CATEGORY
+            - DURATION_BY_DATE_BY_CATEGORY
+            - HOURS_DEFENDED
+            - FOCUS_WORK_BALANCE
 
     Returns:
         Analytics data with time breakdowns by category.
     """
-    await ctx.info(f"Getting user analytics: start={start}, end={end}")
+    await ctx.info(f"Getting user analytics: start={start}, end={end}, metric={metric_name}")
     return await analytics.get_user_analytics(
         start=start,
         end=end,
-        metric_names=metric_names,
+        metric_name=metric_name,
     )
 
 

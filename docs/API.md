@@ -152,7 +152,7 @@ This properly transitions status to ARCHIVED and sets the `finished` timestamp.
 | `prioritize_task` | POST /api/planner/prioritize/task/{id} |
 | `restart_task` | POST /api/planner/restart/task/{id} |
 
-### Calendar Tools (v0.2.0 - v0.6.0)
+### Calendar Tools (v0.2.0 - v0.7.4)
 
 | MCP Tool | API Endpoint(s) |
 |----------|-----------------|
@@ -161,8 +161,14 @@ This properly transitions status to ARCHIVED and sets the `finished` timestamp.
 | `get_event` | GET /api/events/{calendarId}/{eventId} |
 | `pin_event` | POST /api/planner/event/{calendarId}/{eventId}/pin |
 | `unpin_event` | POST /api/planner/event/{calendarId}/{eventId}/unpin |
-| `set_event_rsvp` | POST /api/planner/event/rsvp/{calendarId}/{eventId} |
-| `move_event` | POST /api/planner/event/{calendarId}/{eventId}/move |
+| `set_event_rsvp` | PUT /api/planner/event/rsvp/{calendarId}/{eventId} |
+| `move_event` | POST /api/planner/event/move/{eventId}?start=X&end=Y |
+
+**v0.7.4 Breaking Changes**:
+- `set_event_rsvp`: Now uses PUT method (was POST), body field is `responseStatus` (was `rsvpStatus`),
+  RSVP values use PascalCase (`Accepted`, `Declined`, `TentativelyAccepted`, `NeedsAction`).
+  New `send_updates` parameter controls notifications (default: true).
+- `move_event`: Removed `calendar_id` parameter. Now uses v1 API endpoint with query params.
 
 ### Habit Tools (v0.3.0)
 
@@ -290,15 +296,18 @@ DefenseAggression:
 - **lineageId**: Identifies the habit series (used for CRUD operations)
 - **eventId**: Identifies a specific scheduled instance (used for done/skip actions)
 
-### Analytics Tools (v0.7.0 - v0.7.1)
+### Analytics Tools (v0.7.0 - v0.7.4)
 
 | MCP Tool | API Endpoint(s) |
 |----------|-----------------|
-| `get_user_analytics` | GET /api/analytics/user/V3?start=X&end=Y |
+| `get_user_analytics` | GET /api/analytics/user/V3?start=X&end=Y&metricName=Z |
 | `get_focus_insights` | GET /api/analytics/focus/insights/V3?start=X&end=Y |
 
 **Note**: Team analytics tools (`get_team_analytics`, `export_team_analytics`) were removed in v0.7.1
 as they require a Team plan and caused confusion for users on other plans.
+
+**v0.7.4 Breaking Change**: `get_user_analytics` now requires a single `metric_name` parameter (was optional list).
+Valid metric names: `DURATION_BY_CATEGORY`, `DURATION_BY_DATE_BY_CATEGORY`, `HOURS_DEFENDED`, `FOCUS_WORK_BALANCE`
 
 **Known Limitations**:
 - `get_focus_insights`: Historical date ranges may return HTTP 500 errors.
@@ -314,11 +323,11 @@ as they require a Team plan and caused confusion for users on other plans.
 | `unlock_focus_block` | POST /api/focus/planner/{calendarId}/{eventId}/unlock |
 | `reschedule_focus_block` | POST /api/focus/planner/{calendarId}/{eventId}/reschedule |
 
-## Input Validation (v0.7.2 - v0.7.3)
+## Input Validation (v0.7.2 - v0.7.4)
 
 The MCP server uses Pydantic models for centralized input validation, providing clear error messages before API calls.
 
-### Task Validation (v0.7.3)
+### Task Validation (v0.7.4)
 
 | Field | Rule | Error Message |
 |-------|------|---------------|
@@ -327,6 +336,7 @@ The MCP server uses Pydantic models for centralized input validation, providing 
 | `min_chunk_size_minutes` | Must be > 0 | "Input should be greater than 0" |
 | `max_chunk_size_minutes` | Must be > 0 (if provided) | "Input should be greater than 0" |
 | `min_chunk_size_minutes` vs `max_chunk_size_minutes` | min cannot exceed max | "min_chunk_size_minutes cannot exceed max_chunk_size_minutes" |
+| `due_date` | Must be YYYY-MM-DD format | "date must be in YYYY-MM-DD format (e.g., '2026-01-15')" |
 
 ### Validated Enums
 
@@ -337,7 +347,7 @@ The MCP server uses Pydantic models for centralized input validation, providing 
 | `EventType` | FOCUS, SOLO_WORK, PERSONAL, MEETING, TEAM_MEETING, EXTERNAL_MEETING, ONE_ON_ONE, EXTERNAL, RECLAIM_MANAGED | create_habit, update_habit |
 | `DefenseAggression` | DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX | create_habit, update_habit |
 | `TimePolicyType` | WORK, PERSONAL, MEETING | create_habit, update_habit |
-| `RsvpStatus` | ACCEPTED, DECLINED, TENTATIVE, NEEDS_ACTION | set_event_rsvp |
+| `RsvpStatus` | ACCEPTED (→Accepted), DECLINED (→Declined), TENTATIVE (→TentativelyAccepted), NEEDS_ACTION (→NeedsAction) | set_event_rsvp |
 
 ### Validation Rules
 

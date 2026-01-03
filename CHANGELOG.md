@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-01-03
+
+### Fixed
+
+- **BREAKING**: `set_event_rsvp` now works correctly
+  - Changed HTTP method from POST to PUT
+  - Changed body field from `rsvpStatus` to `responseStatus`
+  - Fixed enum values to PascalCase (`Accepted`, `Declined`, `TentativelyAccepted`, `NeedsAction`)
+  - Added `send_updates` parameter (default: true)
+
+- **BREAKING**: `move_event` now works correctly
+  - Switched to v1 API endpoint (`/api/planner/event/move/{event_id}`)
+  - Removed `calendar_id` parameter (no longer needed)
+  - Parameters now sent as query params instead of body
+
+- **BREAKING**: `get_user_analytics` now works correctly
+  - Changed `metric_names` (optional list) to `metric_name` (required single value)
+  - Only one metric can be retrieved per API call
+
+### Added
+
+- `put()` method to HTTP client for RSVP operations
+- Date validation for `due_date` in TaskCreate/TaskUpdate (must be YYYY-MM-DD format)
+
+**Total tools: 42** (unchanged)
+
+## [0.7.3] - 2026-01-02
+
+### Fixed
+
+- `list_personal_events` now returns correct data (was using wrong date param format)
+- Task validation errors now provide clear messages
+
+### Added
+
+- `verify_connection` tool - Verify API connection and get current user info
+
+**Total tools: 42**
+
+## [0.7.2] - 2026-01-02
+
+### Changed
+
+- Centralized Pydantic validation for all input models
+- Enhanced error handling with structured error messages
+- Added model validators for complex constraints
+
 ## [0.7.1] - 2026-01-02
 
 ### Fixed

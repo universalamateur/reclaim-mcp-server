@@ -124,6 +124,25 @@ class ReclaimClient:
                 return {}
             return response.json()
 
+    async def put(
+        self,
+        endpoint: str,
+        data: dict[str, Any],
+        params: dict[str, Any] | None = None,
+    ) -> Any:
+        """Make a PUT request to the API."""
+        async with httpx.AsyncClient() as client:
+            response = await client.put(
+                f"{self.base_url}{endpoint}",
+                headers=self.headers,
+                json=data,
+                params=params,
+            )
+            self._handle_response_errors(response, endpoint)
+            if not response.content:
+                return {}
+            return response.json()
+
     async def patch(self, endpoint: str, data: dict[str, Any]) -> Any:
         """Make a PATCH request to the API."""
         async with httpx.AsyncClient() as client:

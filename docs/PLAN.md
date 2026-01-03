@@ -1,6 +1,6 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: v0.7.3 Complete - 42 Tools
+**Status**: v0.7.4 Complete - 42 Tools
 **Date**: 2026-01-03
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
@@ -380,13 +380,12 @@ Tag-based release automation:
 - [ ] Apply decorator to all tools in `server.py`
 - [ ] Polish README (installation, usage, examples, env vars)
 
-#### Documentation Fixes (Backlog from v0.7.3)
+#### Documentation Fixes (Completed in v0.7.4)
 
-- [ ] Update README.md version to v0.7.3 with 42 tools
-- [ ] Add v0.7.2 and v0.7.3 entries to CHANGELOG.md
-- [ ] Add v0.7.2 and v0.7.3 to README roadmap table
-- [ ] Add `verify_connection` tool to README Available Tools
-- [ ] Move `health_check` from Tasks to Utility section in README
+- [x] Update README.md version to v0.7.4 with 42 tools
+- [x] Add v0.7.2, v0.7.3, v0.7.4 entries to CHANGELOG.md
+- [x] Update docs/API.md with v0.7.4 breaking changes
+- [x] Update CLAUDE.md and AGENTS.md versions
 
 ---
 

@@ -6,8 +6,8 @@ A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai
 
 ## Current Status
 
-**Version**: v0.7.1
-**Status**: Production-ready with 41 tools
+**Version**: v0.7.4
+**Status**: Production-ready with 42 tools
 
 | Feature | Status |
 |---------|--------|
@@ -16,6 +16,7 @@ A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai
 | Smart Habits | ✅ Complete (14 tools) |
 | Analytics | ✅ Complete (2 tools) |
 | Focus Time | ✅ Complete (5 tools) |
+| Utility | ✅ Complete (1 tool) |
 
 ## Installation
 

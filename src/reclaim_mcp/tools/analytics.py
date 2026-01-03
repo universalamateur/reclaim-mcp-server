@@ -1,6 +1,6 @@
 """Analytics tools for Reclaim.ai."""
 
-from typing import Any, Optional
+from typing import Any
 
 from fastmcp.exceptions import ToolError
 
@@ -20,15 +20,18 @@ def _get_client() -> ReclaimClient:
 async def get_user_analytics(
     start: str,
     end: str,
-    metric_names: Optional[list[str]] = None,
+    metric_name: str,
 ) -> dict:
     """Get personal productivity analytics for the current user.
 
     Args:
         start: Start date in ISO format (e.g., '2026-01-01')
         end: End date in ISO format (e.g., '2026-01-31')
-        metric_names: Optional list of metrics to retrieve
-            (DURATION_BY_CATEGORY, DURATION_BY_DATE_BY_CATEGORY, etc.)
+        metric_name: The metric to retrieve. One of:
+            - DURATION_BY_CATEGORY
+            - DURATION_BY_DATE_BY_CATEGORY
+            - HOURS_DEFENDED
+            - FOCUS_WORK_BALANCE
 
     Returns:
         Analytics data with time breakdowns by category.
@@ -38,9 +41,8 @@ async def get_user_analytics(
         params: dict[str, Any] = {
             "start": start,
             "end": end,
+            "metricName": metric_name,
         }
-        if metric_names:
-            params["metricName"] = metric_names
 
         result = await client.get("/api/analytics/user/V3", params=params)
         return result

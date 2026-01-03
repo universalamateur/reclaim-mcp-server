@@ -81,12 +81,15 @@ class TimePolicyType(str, Enum):
 
 
 class RsvpStatus(str, Enum):
-    """RSVP status values for calendar events."""
+    """RSVP status values for calendar events.
 
-    ACCEPTED = "ACCEPTED"
-    DECLINED = "DECLINED"
-    TENTATIVE = "TENTATIVE"
-    NEEDS_ACTION = "NEEDS_ACTION"
+    Values use PascalCase as required by the Reclaim.ai API.
+    """
+
+    ACCEPTED = "Accepted"
+    DECLINED = "Declined"
+    TENTATIVE = "TentativelyAccepted"
+    NEEDS_ACTION = "NeedsAction"
 
 
 class Task(BaseModel):
@@ -105,6 +108,22 @@ class Task(BaseModel):
     updated: Optional[datetime] = None
 
     model_config = {"populate_by_name": True}
+
+
+def _validate_date_format(v: Optional[str]) -> Optional[str]:
+    """Validate date is in YYYY-MM-DD format."""
+    if v is None:
+        return v
+    # Accept YYYY-MM-DD format
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", v):
+        raise ValueError("date must be in YYYY-MM-DD format (e.g., '2026-01-15')")
+    # Validate actual date values
+    try:
+        year, month, day = int(v[:4]), int(v[5:7]), int(v[8:10])
+        datetime(year, month, day)  # This will raise if date is invalid
+    except ValueError:
+        raise ValueError(f"invalid date: {v}")
+    return v
 
 
 class TaskCreate(BaseModel):
@@ -126,6 +145,12 @@ class TaskCreate(BaseModel):
         if not stripped:
             raise ValueError("title cannot be empty or whitespace-only")
         return stripped
+
+    @field_validator("due_date")
+    @classmethod
+    def validate_due_date(cls, v: Optional[str]) -> Optional[str]:
+        """Validate due_date is in YYYY-MM-DD format."""
+        return _validate_date_format(v)
 
     @model_validator(mode="after")
     def validate_task_constraints(self) -> "TaskCreate":
@@ -154,6 +179,12 @@ class TaskUpdate(BaseModel):
         if not stripped:
             raise ValueError("title cannot be empty or whitespace-only")
         return stripped
+
+    @field_validator("due_date")
+    @classmethod
+    def validate_due_date(cls, v: Optional[str]) -> Optional[str]:
+        """Validate due_date is in YYYY-MM-DD format."""
+        return _validate_date_format(v)
 
 
 # --- Habit Validation Models ---
@@ -260,9 +291,11 @@ class EventRsvp(BaseModel):
 
 
 class EventMove(BaseModel):
-    """Validation model for moving/rescheduling an event."""
+    """Validation model for moving/rescheduling an event.
 
-    calendar_id: int
+    Note: v0.7.4+ uses the v1 API endpoint which doesn't require calendar_id.
+    """
+
     event_id: str
     start_time: str
     end_time: str

@@ -124,7 +124,7 @@ class TestCreateTask:
             result = await tasks.create_task(
                 title="Full Task",
                 duration_minutes=120,
-                due_date="2026-01-15T17:00:00Z",
+                due_date="2026-01-15",
                 min_chunk_size_minutes=30,
                 max_chunk_size_minutes=60,
                 snooze_until="2026-01-10T09:00:00Z",
@@ -139,7 +139,7 @@ class TestCreateTask:
         assert payload["minChunkSize"] == 30
         assert payload["maxChunkSize"] == 60
         assert payload["priority"] == "P1"
-        assert payload["deadline"] == "2026-01-15T17:00:00Z"
+        assert payload["deadline"] == "2026-01-15"
         assert payload["snoozeUntil"] == "2026-01-10T09:00:00Z"
 
     @pytest.mark.asyncio
@@ -189,7 +189,7 @@ class TestUpdateTask:
                 task_id=12345,
                 title="New Title",
                 status="IN_PROGRESS",
-                due_date="2026-02-01T12:00:00Z",
+                due_date="2026-02-01",
             )
 
         mock_client.patch.assert_called_once_with(
@@ -197,7 +197,7 @@ class TestUpdateTask:
             {
                 "title": "New Title",
                 "status": "IN_PROGRESS",
-                "due": "2026-02-01T12:00:00Z",
+                "due": "2026-02-01",
             },
         )
 

@@ -2,7 +2,7 @@
 
 This is a Python MCP (Model Context Protocol) server for Reclaim.ai integration, built with FastMCP.
 
-**Current Version**: v0.7.3 (42 tools)
+**Current Version**: v0.7.4 (42 tools)
 
 ## Purpose
 
@@ -62,6 +62,15 @@ tests/
 Note: `health_check` returns version automatically via `__version__` import.
 
 Failure to keep these aligned causes version confusion for clients.
+
+**After any `pyproject.toml` change, run `poetry lock` to sync the lock file:**
+
+```bash
+poetry lock
+```
+
+This includes version bumps, dependency changes, or any `[tool.poetry]` modifications.
+Failing to do this will cause CI pipeline failures.
 
 ## Development Conventions
 
