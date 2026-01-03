@@ -9,7 +9,7 @@ from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
-from reclaim_mcp.models import TaskCreate, TaskUpdate
+from reclaim_mcp.models import ListLimit, TaskCreate, TaskId, TaskListParams, TaskUpdate, TimeLog
 
 
 def _get_client() -> ReclaimClient:
@@ -38,9 +38,15 @@ async def list_tasks(
     Returns:
         List of task objects with id, title, duration, due_date, status, etc.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = TaskListParams(status=status, limit=limit)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        params = {"status": status, "limit": limit}
+        params = {"status": validated.status, "limit": validated.limit}
         tasks = await client.get("/api/tasks", params=params)
         return tasks
     except RateLimitError as e:
@@ -59,9 +65,15 @@ async def list_completed_tasks(limit: int = 50) -> list[dict]:
     Returns:
         List of completed/archived task objects.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = ListLimit(limit=limit)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        params = {"status": "COMPLETE,ARCHIVED", "limit": limit}
+        params = {"status": "COMPLETE,ARCHIVED", "limit": validated.limit}
         tasks = await client.get("/api/tasks", params=params)
         return tasks
     except RateLimitError as e:
@@ -79,16 +91,22 @@ async def get_task(task_id: int) -> dict:
     Returns:
         Task object with all details.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        task = await client.get(f"/api/tasks/{task_id}")
+        task = await client.get(f"/api/tasks/{validated.task_id}")
         return task
     except NotFoundError:
-        raise ToolError(f"Task {task_id} not found")
+        raise ToolError(f"Task {validated.task_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error getting task {task_id}: {e}")
+        raise ToolError(f"Error getting task {validated.task_id}: {e}")
 
 
 async def create_task(
@@ -179,7 +197,13 @@ async def update_task(
     Returns:
         Updated task object.
     """
-    # Validate input using Pydantic model
+    # Validate task_id
+    try:
+        validated_id = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
+    # Validate update fields using Pydantic model
     try:
         validated = TaskUpdate(
             title=title,
@@ -203,16 +227,16 @@ async def update_task(
         if validated.status is not None:
             update_data["status"] = validated.status.value
 
-        result = await client.patch(f"/api/tasks/{task_id}", update_data)
+        result = await client.patch(f"/api/tasks/{validated_id.task_id}", update_data)
         invalidate_cache("list_tasks")
         invalidate_cache("list_completed_tasks")
         return result
     except NotFoundError:
-        raise ToolError(f"Task {task_id} not found")
+        raise ToolError(f"Task {validated_id.task_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error updating task {task_id}: {e}")
+        raise ToolError(f"Error updating task {validated_id.task_id}: {e}")
 
 
 async def mark_task_complete(task_id: int) -> dict:
@@ -224,18 +248,24 @@ async def mark_task_complete(task_id: int) -> dict:
     Returns:
         Updated task object.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/planner/done/task/{task_id}", {})
+        result = await client.post(f"/api/planner/done/task/{validated.task_id}", {})
         invalidate_cache("list_tasks")
         invalidate_cache("list_completed_tasks")
         return result
     except NotFoundError:
-        raise ToolError(f"Task {task_id} not found")
+        raise ToolError(f"Task {validated.task_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error marking task {task_id} complete: {e}")
+        raise ToolError(f"Error marking task {validated.task_id} complete: {e}")
 
 
 async def delete_task(task_id: int) -> bool:
@@ -247,16 +277,22 @@ async def delete_task(task_id: int) -> bool:
     Returns:
         True if deleted successfully.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.delete(f"/api/tasks/{task_id}")
+        result = await client.delete(f"/api/tasks/{validated.task_id}")
         invalidate_cache("list_tasks")
         invalidate_cache("list_completed_tasks")
         return result
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error deleting task {task_id}: {e}")
+        raise ToolError(f"Error deleting task {validated.task_id}: {e}")
 
 
 async def add_time_to_task(
@@ -274,29 +310,41 @@ async def add_time_to_task(
     Returns:
         Planner action result.
     """
+    # Validate task_id
+    try:
+        validated_id = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
+    # Validate minutes using Pydantic model
+    try:
+        validated = TimeLog(minutes=minutes)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
 
         # Use the dedicated planner endpoint for time logging
         # POST /api/planner/log-work/task/{taskId}?minutes=X
         result = await client.post(
-            f"/api/planner/log-work/task/{task_id}",
+            f"/api/planner/log-work/task/{validated_id.task_id}",
             {},
-            params={"minutes": minutes},
+            params={"minutes": validated.minutes},
         )
 
         # If notes provided, update them separately on the task
         if notes:
-            await client.patch(f"/api/tasks/{task_id}", {"notes": notes})
+            await client.patch(f"/api/tasks/{validated_id.task_id}", {"notes": notes})
 
         invalidate_cache("list_tasks")
         return result
     except NotFoundError:
-        raise ToolError(f"Task {task_id} not found")
+        raise ToolError(f"Task {validated_id.task_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error logging time for task {task_id}: {e}")
+        raise ToolError(f"Error logging time for task {validated_id.task_id}: {e}")
 
 
 async def start_task(task_id: int) -> dict:
@@ -308,17 +356,23 @@ async def start_task(task_id: int) -> dict:
     Returns:
         Planner action result with updated task state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/planner/start/task/{task_id}", {})
+        result = await client.post(f"/api/planner/start/task/{validated.task_id}", {})
         invalidate_cache("list_tasks")
         return result
     except NotFoundError:
-        raise ToolError(f"Task {task_id} not found")
+        raise ToolError(f"Task {validated.task_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error starting task {task_id}: {e}")
+        raise ToolError(f"Error starting task {validated.task_id}: {e}")
 
 
 async def stop_task(task_id: int) -> dict:
@@ -330,17 +384,23 @@ async def stop_task(task_id: int) -> dict:
     Returns:
         Planner action result with updated task state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/planner/stop/task/{task_id}", {})
+        result = await client.post(f"/api/planner/stop/task/{validated.task_id}", {})
         invalidate_cache("list_tasks")
         return result
     except NotFoundError:
-        raise ToolError(f"Task {task_id} not found")
+        raise ToolError(f"Task {validated.task_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error stopping task {task_id}: {e}")
+        raise ToolError(f"Error stopping task {validated.task_id}: {e}")
 
 
 async def prioritize_task(task_id: int) -> dict:
@@ -352,17 +412,23 @@ async def prioritize_task(task_id: int) -> dict:
     Returns:
         Planner action result with updated task state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/planner/prioritize/task/{task_id}", {})
+        result = await client.post(f"/api/planner/prioritize/task/{validated.task_id}", {})
         invalidate_cache("list_tasks")
         return result
     except NotFoundError:
-        raise ToolError(f"Task {task_id} not found")
+        raise ToolError(f"Task {validated.task_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error prioritizing task {task_id}: {e}")
+        raise ToolError(f"Error prioritizing task {validated.task_id}: {e}")
 
 
 async def restart_task(task_id: int) -> dict:
@@ -374,15 +440,21 @@ async def restart_task(task_id: int) -> dict:
     Returns:
         Planner action result with updated task state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/planner/restart/task/{task_id}", {})
+        result = await client.post(f"/api/planner/restart/task/{validated.task_id}", {})
         invalidate_cache("list_tasks")
         invalidate_cache("list_completed_tasks")
         return result
     except NotFoundError:
-        raise ToolError(f"Task {task_id} not found")
+        raise ToolError(f"Task {validated.task_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error restarting task {task_id}: {e}")
+        raise ToolError(f"Error restarting task {validated.task_id}: {e}")

@@ -10,7 +10,14 @@ from reclaim_mcp.cache import invalidate_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
-from reclaim_mcp.models import EventMove, EventRsvp
+from reclaim_mcp.models import (
+    CalendarEventId,
+    DateRange,
+    EventMove,
+    EventRsvp,
+    ListLimit,
+    OptionalDateRange,
+)
 
 
 def _get_client() -> ReclaimClient:
@@ -53,11 +60,17 @@ async def list_events(
     Returns:
         List of event objects with eventId, title, eventStart, eventEnd, etc.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = DateRange(start=_extract_date(start), end=_extract_date(end))
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
         params: dict[str, Any] = {
-            "start": _extract_date(start),
-            "end": _extract_date(end),
+            "start": validated.start,
+            "end": validated.end,
             "thin": thin,
         }
         if calendar_ids:
@@ -88,19 +101,35 @@ async def list_personal_events(
     Returns:
         List of personal event objects.
     """
+    # Validate limit using Pydantic model
+    try:
+        validated_limit = ListLimit(limit=limit)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     # Default to current week if dates not provided
-    if start is None:
-        start = datetime.now().strftime("%Y-%m-%d")
-    if end is None:
-        end_date = datetime.now() + timedelta(days=7)
-        end = end_date.strftime("%Y-%m-%d")
+    start_date = start
+    end_date = end
+    if start_date is None:
+        start_date = datetime.now().strftime("%Y-%m-%d")
+    if end_date is None:
+        end_dt = datetime.now() + timedelta(days=7)
+        end_date = end_dt.strftime("%Y-%m-%d")
+
+    # Validate dates using Pydantic model
+    try:
+        validated_dates = OptionalDateRange(
+            start=_extract_date(start_date), end=_extract_date(end_date)
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
 
     try:
         client = _get_client()
         params: dict[str, Any] = {
-            "limit": limit,
-            "start": _extract_date(start),
-            "end": _extract_date(end),
+            "limit": validated_limit.limit,
+            "start": validated_dates.start,
+            "end": validated_dates.end,
         }
 
         events = await client.get("/api/events/personal", params=params)
@@ -109,6 +138,9 @@ async def list_personal_events(
         raise ToolError(str(e))
     except ReclaimError as e:
         raise ToolError(f"Error listing personal events: {e}")
+    except Exception as e:
+        # Catch unexpected errors to help diagnose issues like the limit>17 bug
+        raise ToolError(f"Unexpected error listing personal events: {type(e).__name__}: {e}")
 
 
 async def get_event(
@@ -129,17 +161,29 @@ async def get_event(
     Returns:
         Event object with full details.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
         params: dict[str, Any] = {"thin": thin}
-        event = await client.get(f"/api/events/{calendar_id}/{event_id}", params=params)
+        event = await client.get(
+            f"/api/events/{validated.calendar_id}/{validated.event_id}",
+            params=params,
+        )
         return event
     except NotFoundError:
-        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
+        raise ToolError(
+            f"Event {validated.event_id} not found in calendar "
+            f"{validated.calendar_id}"
+        )
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error getting event {event_id}: {e}")
+        raise ToolError(f"Error getting event {validated.event_id}: {e}")
 
 
 async def pin_event(calendar_id: int, event_id: str) -> dict:
@@ -152,18 +196,30 @@ async def pin_event(calendar_id: int, event_id: str) -> dict:
     Returns:
         Planner action result with updated event state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/planner/event/{calendar_id}/{event_id}/pin", {})
+        result = await client.post(
+            f"/api/planner/event/{validated.calendar_id}/{validated.event_id}/pin",
+            {},
+        )
         invalidate_cache("list_events")
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
-        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
+        raise ToolError(
+            f"Event {validated.event_id} not found in calendar "
+            f"{validated.calendar_id}"
+        )
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error pinning event {event_id}: {e}")
+        raise ToolError(f"Error pinning event {validated.event_id}: {e}")
 
 
 async def unpin_event(calendar_id: int, event_id: str) -> dict:
@@ -176,18 +232,30 @@ async def unpin_event(calendar_id: int, event_id: str) -> dict:
     Returns:
         Planner action result with updated event state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/planner/event/{calendar_id}/{event_id}/unpin", {})
+        result = await client.post(
+            f"/api/planner/event/{validated.calendar_id}/{validated.event_id}/unpin",
+            {},
+        )
         invalidate_cache("list_events")
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
-        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
+        raise ToolError(
+            f"Event {validated.event_id} not found in calendar "
+            f"{validated.calendar_id}"
+        )
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error unpinning event {event_id}: {e}")
+        raise ToolError(f"Error unpinning event {validated.event_id}: {e}")
 
 
 async def set_event_rsvp(

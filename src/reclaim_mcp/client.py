@@ -12,6 +12,9 @@ from reclaim_mcp.exceptions import APIError, NotFoundError, RateLimitError
 class ReclaimClient:
     """Async client for interacting with the Reclaim.ai API."""
 
+    # Timeout for API requests (30s to handle slow endpoints like /api/events/personal)
+    REQUEST_TIMEOUT = 30.0
+
     def __init__(self, settings: Settings) -> None:
         """Initialize the client with settings."""
         self.base_url = settings.base_url
@@ -95,7 +98,7 @@ class ReclaimClient:
 
     async def get(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
         """Make a GET request to the API."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT) as client:
             response = await client.get(
                 f"{self.base_url}{endpoint}",
                 headers=self.headers,
@@ -111,7 +114,7 @@ class ReclaimClient:
         params: dict[str, Any] | None = None,
     ) -> Any:
         """Make a POST request to the API."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT) as client:
             response = await client.post(
                 f"{self.base_url}{endpoint}",
                 headers=self.headers,
@@ -131,7 +134,7 @@ class ReclaimClient:
         params: dict[str, Any] | None = None,
     ) -> Any:
         """Make a PUT request to the API."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT) as client:
             response = await client.put(
                 f"{self.base_url}{endpoint}",
                 headers=self.headers,
@@ -145,7 +148,7 @@ class ReclaimClient:
 
     async def patch(self, endpoint: str, data: dict[str, Any]) -> Any:
         """Make a PATCH request to the API."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT) as client:
             response = await client.patch(
                 f"{self.base_url}{endpoint}",
                 headers=self.headers,
@@ -160,7 +163,7 @@ class ReclaimClient:
         Note: DELETE returns bool for backwards compatibility.
         Errors are raised as exceptions.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT) as client:
             response = await client.delete(
                 f"{self.base_url}{endpoint}",
                 headers=self.headers,

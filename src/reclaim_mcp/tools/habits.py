@@ -9,7 +9,7 @@ from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
-from reclaim_mcp.models import HabitCreate, HabitUpdate
+from reclaim_mcp.models import CalendarEventId, EventInstanceId, HabitCreate, HabitId, HabitUpdate
 
 
 def _get_client() -> ReclaimClient:
@@ -51,16 +51,22 @@ async def get_habit(lineage_id: int) -> dict:
     Returns:
         SmartHabitLineageView object with full details.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = HabitId(lineage_id=lineage_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        habit = await client.get(f"/api/smart-habits/{lineage_id}")
+        habit = await client.get(f"/api/smart-habits/{validated.lineage_id}")
         return habit
     except NotFoundError:
-        raise ToolError(f"Habit {lineage_id} not found")
+        raise ToolError(f"Habit {validated.lineage_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error getting habit {lineage_id}: {e}")
+        raise ToolError(f"Error getting habit {validated.lineage_id}: {e}")
 
 
 async def create_habit(
@@ -191,7 +197,13 @@ async def update_habit(
     Returns:
         Updated habit object.
     """
-    # Validate input using Pydantic model
+    # Validate lineage_id
+    try:
+        validated_id = HabitId(lineage_id=lineage_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
+    # Validate update fields using Pydantic model
     try:
         validated = HabitUpdate(
             title=title,
@@ -242,16 +254,16 @@ async def update_habit(
                 recurrence["idealDays"] = [d.value for d in validated.ideal_days]
             payload["recurrence"] = recurrence
 
-        habit = await client.patch(f"/api/smart-habits/{lineage_id}", data=payload)
+        habit = await client.patch(f"/api/smart-habits/{validated_id.lineage_id}", data=payload)
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return habit
     except NotFoundError:
-        raise ToolError(f"Habit {lineage_id} not found")
+        raise ToolError(f"Habit {validated_id.lineage_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error updating habit {lineage_id}: {e}")
+        raise ToolError(f"Error updating habit {validated_id.lineage_id}: {e}")
 
 
 async def delete_habit(lineage_id: int) -> bool:
@@ -263,16 +275,22 @@ async def delete_habit(lineage_id: int) -> bool:
     Returns:
         True if deleted successfully.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = HabitId(lineage_id=lineage_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        await client.delete(f"/api/smart-habits/{lineage_id}")
+        await client.delete(f"/api/smart-habits/{validated.lineage_id}")
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return True
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error deleting habit {lineage_id}: {e}")
+        raise ToolError(f"Error deleting habit {validated.lineage_id}: {e}")
 
 
 async def mark_habit_done(event_id: str) -> dict:
@@ -286,14 +304,20 @@ async def mark_habit_done(event_id: str) -> dict:
     Returns:
         Action result with updated events and series info.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = EventInstanceId(event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/smart-habits/planner/{event_id}/done", data={})
+        result = await client.post(f"/api/smart-habits/planner/{validated.event_id}/done", data={})
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        raise ToolError(f"Habit event {event_id} not found")
+        raise ToolError(f"Habit event {validated.event_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -311,14 +335,20 @@ async def skip_habit(event_id: str) -> dict:
     Returns:
         Action result with updated events and series info.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = EventInstanceId(event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/smart-habits/planner/{event_id}/skip", data={})
+        result = await client.post(f"/api/smart-habits/planner/{validated.event_id}/skip", data={})
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        raise ToolError(f"Habit event {event_id} not found")
+        raise ToolError(f"Habit event {validated.event_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -334,14 +364,20 @@ async def lock_habit_instance(event_id: str) -> dict:
     Returns:
         Action result with updated events and series info.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = EventInstanceId(event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/smart-habits/planner/{event_id}/lock", data={})
+        result = await client.post(f"/api/smart-habits/planner/{validated.event_id}/lock", data={})
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        raise ToolError(f"Habit event {event_id} not found")
+        raise ToolError(f"Habit event {validated.event_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -357,14 +393,22 @@ async def unlock_habit_instance(event_id: str) -> dict:
     Returns:
         Action result with updated events and series info.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = EventInstanceId(event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/smart-habits/planner/{event_id}/unlock", data={})
+        result = await client.post(
+            f"/api/smart-habits/planner/{validated.event_id}/unlock", data={}
+        )
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        raise ToolError(f"Habit event {event_id} not found")
+        raise ToolError(f"Habit event {validated.event_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -380,18 +424,26 @@ async def start_habit(lineage_id: int) -> dict:
     Returns:
         Action result with updated events and series info.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = HabitId(lineage_id=lineage_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/smart-habits/planner/{lineage_id}/start", data={})
+        result = await client.post(
+            f"/api/smart-habits/planner/{validated.lineage_id}/start", data={}
+        )
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        raise ToolError(f"Habit {lineage_id} not found")
+        raise ToolError(f"Habit {validated.lineage_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error starting habit {lineage_id}: {e}")
+        raise ToolError(f"Error starting habit {validated.lineage_id}: {e}")
 
 
 async def stop_habit(lineage_id: int) -> dict:
@@ -403,18 +455,26 @@ async def stop_habit(lineage_id: int) -> dict:
     Returns:
         Action result with updated events and series info.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = HabitId(lineage_id=lineage_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/smart-habits/planner/{lineage_id}/stop", data={})
+        result = await client.post(
+            f"/api/smart-habits/planner/{validated.lineage_id}/stop", data={}
+        )
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        raise ToolError(f"Habit {lineage_id} not found")
+        raise ToolError(f"Habit {validated.lineage_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error stopping habit {lineage_id}: {e}")
+        raise ToolError(f"Error stopping habit {validated.lineage_id}: {e}")
 
 
 async def enable_habit(lineage_id: int) -> dict:
@@ -426,18 +486,24 @@ async def enable_habit(lineage_id: int) -> dict:
     Returns:
         Empty dict on success.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = HabitId(lineage_id=lineage_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/smart-habits/{lineage_id}/enable", data={})
+        result = await client.post(f"/api/smart-habits/{validated.lineage_id}/enable", data={})
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
     except NotFoundError:
-        raise ToolError(f"Habit {lineage_id} not found")
+        raise ToolError(f"Habit {validated.lineage_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error enabling habit {lineage_id}: {e}")
+        raise ToolError(f"Error enabling habit {validated.lineage_id}: {e}")
 
 
 async def disable_habit(lineage_id: int) -> bool:
@@ -449,16 +515,22 @@ async def disable_habit(lineage_id: int) -> bool:
     Returns:
         True if disabled successfully.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = HabitId(lineage_id=lineage_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        await client.delete(f"/api/smart-habits/{lineage_id}/disable")
+        await client.delete(f"/api/smart-habits/{validated.lineage_id}/disable")
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return True
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error disabling habit {lineage_id}: {e}")
+        raise ToolError(f"Error disabling habit {validated.lineage_id}: {e}")
 
 
 async def convert_event_to_habit(
@@ -499,7 +571,13 @@ async def convert_event_to_habit(
     Returns:
         Created habit object.
     """
-    # Validate input using Pydantic model (reuse HabitCreate for habit fields)
+    # Validate calendar/event IDs using Pydantic model
+    try:
+        validated_event = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
+    # Validate habit fields using Pydantic model
     try:
         validated = HabitCreate(
             title=title,
@@ -556,14 +634,17 @@ async def convert_event_to_habit(
             payload["description"] = validated.description
 
         habit = await client.post(
-            f"/api/smart-habits/convert/{calendar_id}/{event_id}",
+            f"/api/smart-habits/convert/{validated_event.calendar_id}/{validated_event.event_id}",
             data=payload,
         )
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return habit
     except NotFoundError:
-        raise ToolError(f"Event {event_id} not found in calendar {calendar_id}")
+        raise ToolError(
+            f"Event {validated_event.event_id} not found in calendar "
+            f"{validated_event.calendar_id}"
+        )
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:

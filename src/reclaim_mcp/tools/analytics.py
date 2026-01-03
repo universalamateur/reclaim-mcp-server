@@ -3,17 +3,25 @@
 from typing import Any
 
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from reclaim_mcp.cache import ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import RateLimitError, ReclaimError
+from reclaim_mcp.models import DateRange, UserAnalyticsRequest
 
 
 def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
+
+
+def _format_validation_errors(e: ValidationError) -> str:
+    """Format Pydantic validation errors into a user-friendly message."""
+    errors = "; ".join(err["msg"] for err in e.errors())
+    return f"Invalid input: {errors}"
 
 
 @ttl_cache(ttl=300)
@@ -36,12 +44,22 @@ async def get_user_analytics(
     Returns:
         Analytics data with time breakdowns by category.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = UserAnalyticsRequest(
+            start=start,
+            end=end,
+            metric_name=metric_name,  # type: ignore[arg-type]
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
         params: dict[str, Any] = {
-            "start": start,
-            "end": end,
-            "metricName": metric_name,
+            "start": validated.start,
+            "end": validated.end,
+            "metricName": validated.metric_name.value,
         }
 
         result = await client.get("/api/analytics/user/V3", params=params)
@@ -66,11 +84,17 @@ async def get_focus_insights(
     Returns:
         Focus time analytics including protected hours, interruptions, etc.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = DateRange(start=start, end=end)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
         params: dict[str, Any] = {
-            "start": start,
-            "end": end,
+            "start": validated.start,
+            "end": validated.end,
         }
 
         result = await client.get("/api/analytics/focus/insights/V3", params=params)

@@ -3,7 +3,7 @@
 import re
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -325,3 +325,182 @@ class EventMove(BaseModel):
             # If parsing fails, the format validator already caught it
             pass
         return self
+
+
+# --- Time Logging Validation Models ---
+
+
+class TimeLog(BaseModel):
+    """Validation model for logging time to a task."""
+
+    minutes: int = Field(gt=0)
+
+
+# --- Focus Settings Validation Models ---
+
+
+class FocusSettingsUpdate(BaseModel):
+    """Validation model for updating focus settings."""
+
+    min_duration_mins: Optional[int] = Field(default=None, gt=0)
+    ideal_duration_mins: Optional[int] = Field(default=None, gt=0)
+    max_duration_mins: Optional[int] = Field(default=None, gt=0)
+    defense_aggression: Optional[DefenseAggression] = None
+    enabled: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def validate_duration_order(self) -> "FocusSettingsUpdate":
+        """Validate duration fields are in logical order when multiple provided."""
+        # Check ordering: min <= ideal <= max
+        if self.min_duration_mins and self.ideal_duration_mins:
+            if self.min_duration_mins > self.ideal_duration_mins:
+                raise ValueError("min_duration_mins cannot exceed ideal_duration_mins")
+        if self.ideal_duration_mins and self.max_duration_mins:
+            if self.ideal_duration_mins > self.max_duration_mins:
+                raise ValueError("ideal_duration_mins cannot exceed max_duration_mins")
+        if self.min_duration_mins and self.max_duration_mins:
+            if self.min_duration_mins > self.max_duration_mins:
+                raise ValueError("min_duration_mins cannot exceed max_duration_mins")
+
+        return self
+
+
+class FocusReschedule(BaseModel):
+    """Validation model for reschedule_focus_block parameters."""
+
+    calendar_id: int = Field(gt=0)
+    event_id: str = Field(min_length=1)
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def validate_datetime_format(cls, v: Optional[str]) -> Optional[str]:
+        """Validate datetime is in ISO format."""
+        if v is None:
+            return v
+        iso_pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})?$"
+        if not re.match(iso_pattern, v):
+            raise ValueError("datetime must be in ISO format (e.g., '2026-01-02T14:00:00Z')")
+        return v
+
+
+# --- ID Validation Models ---
+
+
+class TaskId(BaseModel):
+    """Validation for task ID parameters."""
+
+    task_id: int = Field(gt=0)
+
+
+class HabitId(BaseModel):
+    """Validation for habit lineage ID parameters."""
+
+    lineage_id: int = Field(gt=0)
+
+
+class CalendarEventId(BaseModel):
+    """Validation for calendar/event ID parameters."""
+
+    calendar_id: int = Field(gt=0)
+    event_id: str = Field(min_length=1)
+
+
+class EventInstanceId(BaseModel):
+    """Validation for event instance ID parameters (habit instances)."""
+
+    event_id: str = Field(min_length=1)
+
+
+# --- Date Range Validation Models ---
+
+
+class DateRange(BaseModel):
+    """Validation for date range parameters."""
+
+    start: str
+    end: str
+
+    @field_validator("start", "end")
+    @classmethod
+    def validate_date_format(cls, v: str) -> str:
+        """Validate date is in YYYY-MM-DD format."""
+        return cast(str, _validate_date_format(v))
+
+    @model_validator(mode="after")
+    def validate_date_order(self) -> "DateRange":
+        """Validate that start date is before or equal to end date."""
+        start_date = datetime.strptime(self.start, "%Y-%m-%d")
+        end_date = datetime.strptime(self.end, "%Y-%m-%d")
+        if start_date > end_date:
+            raise ValueError("start date must be before or equal to end date")
+        return self
+
+
+class OptionalDateRange(BaseModel):
+    """Validation for optional date range parameters."""
+
+    start: Optional[str] = None
+    end: Optional[str] = None
+
+    @field_validator("start", "end")
+    @classmethod
+    def validate_date_format(cls, v: Optional[str]) -> Optional[str]:
+        """Validate date is in YYYY-MM-DD format if provided."""
+        if v is None:
+            return v
+        return _validate_date_format(v)
+
+
+# --- List Parameter Models ---
+
+
+class ListLimit(BaseModel):
+    """Validation for list limit parameters."""
+
+    limit: int = Field(default=50, gt=0, le=1000)
+
+
+class TaskListParams(BaseModel):
+    """Validation for list_tasks parameters."""
+
+    status: str = "NEW,SCHEDULED,IN_PROGRESS"
+    limit: int = Field(default=50, gt=0, le=1000)
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        """Validate status values are valid TaskStatus values."""
+        valid = {"NEW", "SCHEDULED", "IN_PROGRESS", "COMPLETE", "ARCHIVED"}
+        parts = [s.strip() for s in v.split(",")]
+        invalid = set(parts) - valid
+        if invalid:
+            raise ValueError(f"invalid status values: {invalid}. Must be one of {valid}")
+        return v
+
+
+# --- Analytics Validation Models ---
+
+
+class AnalyticsMetric(str, Enum):
+    """Valid metric names for user analytics."""
+
+    DURATION_BY_CATEGORY = "DURATION_BY_CATEGORY"
+    DURATION_BY_DATE_BY_CATEGORY = "DURATION_BY_DATE_BY_CATEGORY"
+    HOURS_DEFENDED = "HOURS_DEFENDED"
+    FOCUS_WORK_BALANCE = "FOCUS_WORK_BALANCE"
+
+
+class UserAnalyticsRequest(BaseModel):
+    """Validation for get_user_analytics parameters."""
+
+    start: str
+    end: str
+    metric_name: AnalyticsMetric
+
+    @field_validator("start", "end")
+    @classmethod
+    def validate_date_format(cls, v: str) -> str:
+        """Validate date is in YYYY-MM-DD format."""
+        return cast(str, _validate_date_format(v))

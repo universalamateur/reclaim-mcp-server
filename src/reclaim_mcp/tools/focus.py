@@ -3,17 +3,25 @@
 from typing import Any, Optional
 
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
+from reclaim_mcp.models import CalendarEventId, FocusReschedule, FocusSettingsUpdate
 
 
 def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
+
+
+def _format_validation_errors(e: ValidationError) -> str:
+    """Format Pydantic validation errors into a user-friendly message."""
+    errors = "; ".join(err["msg"] for err in e.errors())
+    return f"Invalid input: {errors}"
 
 
 @ttl_cache(ttl=120)
@@ -54,20 +62,32 @@ async def update_focus_settings(
     Returns:
         Updated focus settings.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = FocusSettingsUpdate(
+            min_duration_mins=min_duration_mins,
+            ideal_duration_mins=ideal_duration_mins,
+            max_duration_mins=max_duration_mins,
+            defense_aggression=defense_aggression,  # type: ignore[arg-type]
+            enabled=enabled,
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
 
         update_data: dict[str, Any] = {}
-        if min_duration_mins is not None:
-            update_data["minDurationMins"] = min_duration_mins
-        if ideal_duration_mins is not None:
-            update_data["idealDurationMins"] = ideal_duration_mins
-        if max_duration_mins is not None:
-            update_data["maxDurationMins"] = max_duration_mins
-        if defense_aggression is not None:
-            update_data["defenseAggression"] = defense_aggression
-        if enabled is not None:
-            update_data["enabled"] = enabled
+        if validated.min_duration_mins is not None:
+            update_data["minDurationMins"] = validated.min_duration_mins
+        if validated.ideal_duration_mins is not None:
+            update_data["idealDurationMins"] = validated.ideal_duration_mins
+        if validated.max_duration_mins is not None:
+            update_data["maxDurationMins"] = validated.max_duration_mins
+        if validated.defense_aggression is not None:
+            update_data["defenseAggression"] = validated.defense_aggression.value
+        if validated.enabled is not None:
+            update_data["enabled"] = validated.enabled
 
         result = await client.patch(f"/api/focus-settings/user/{settings_id}", update_data)
         invalidate_cache("get_focus_settings")
@@ -90,18 +110,30 @@ async def lock_focus_block(calendar_id: int, event_id: str) -> dict:
     Returns:
         Planner action result with updated event state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/focus/planner/{calendar_id}/{event_id}/lock", {})
+        result = await client.post(
+            f"/api/focus/planner/{validated.calendar_id}/{validated.event_id}/lock",
+            {},
+        )
         invalidate_cache("list_events")
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
-        raise ToolError(f"Focus block {event_id} not found in calendar {calendar_id}")
+        raise ToolError(
+            f"Focus block {validated.event_id} not found in calendar "
+            f"{validated.calendar_id}"
+        )
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error locking focus block {event_id}: {e}")
+        raise ToolError(f"Error locking focus block {validated.event_id}: {e}")
 
 
 async def unlock_focus_block(calendar_id: int, event_id: str) -> dict:
@@ -114,18 +146,30 @@ async def unlock_focus_block(calendar_id: int, event_id: str) -> dict:
     Returns:
         Planner action result with updated event state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
-        result = await client.post(f"/api/focus/planner/{calendar_id}/{event_id}/unlock", {})
+        result = await client.post(
+            f"/api/focus/planner/{validated.calendar_id}/{validated.event_id}/unlock",
+            {},
+        )
         invalidate_cache("list_events")
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
-        raise ToolError(f"Focus block {event_id} not found in calendar {calendar_id}")
+        raise ToolError(
+            f"Focus block {validated.event_id} not found in calendar "
+            f"{validated.calendar_id}"
+        )
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error unlocking focus block {event_id}: {e}")
+        raise ToolError(f"Error unlocking focus block {validated.event_id}: {e}")
 
 
 async def reschedule_focus_block(
@@ -145,24 +189,38 @@ async def reschedule_focus_block(
     Returns:
         Planner action result with updated event state.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = FocusReschedule(
+            calendar_id=calendar_id,
+            event_id=event_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
         payload: dict[str, Any] = {}
-        if start_time is not None:
-            payload["start"] = start_time
-        if end_time is not None:
-            payload["end"] = end_time
+        if validated.start_time is not None:
+            payload["start"] = validated.start_time
+        if validated.end_time is not None:
+            payload["end"] = validated.end_time
 
         result = await client.post(
-            f"/api/focus/planner/{calendar_id}/{event_id}/reschedule",
+            f"/api/focus/planner/{validated.calendar_id}/{validated.event_id}/reschedule",
             payload,
         )
         invalidate_cache("list_events")
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
-        raise ToolError(f"Focus block {event_id} not found in calendar {calendar_id}")
+        raise ToolError(
+            f"Focus block {validated.event_id} not found in calendar "
+            f"{validated.calendar_id}"
+        )
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error rescheduling focus block {event_id}: {e}")
+        raise ToolError(f"Error rescheduling focus block {validated.event_id}: {e}")
