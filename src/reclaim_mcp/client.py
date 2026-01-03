@@ -85,7 +85,7 @@ class ReclaimClient:
             raise APIError("Authentication failed. Please check your RECLAIM_API_KEY.")
         if response.status_code == 403:
             detail = self._parse_error_message(response)
-            raise APIError(f"Access denied (403): {detail}. " "This may be a plan/tier restriction.")
+            raise APIError(f"Access denied (403): {detail}. This may be a plan/tier restriction.")
         if response.status_code >= 500:
             detail = self._parse_error_message(response)
             raise APIError(f"Reclaim API server error ({response.status_code}): {detail}")

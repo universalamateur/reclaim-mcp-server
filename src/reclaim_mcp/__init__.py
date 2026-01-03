@@ -1,3 +1,3 @@
 """Reclaim.ai MCP Server - Calendar integration via Model Context Protocol."""
 
-__version__ = "0.7.2"
+__version__ = "0.7.3"

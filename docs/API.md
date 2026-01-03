@@ -300,6 +300,10 @@ DefenseAggression:
 **Note**: Team analytics tools (`get_team_analytics`, `export_team_analytics`) were removed in v0.7.1
 as they require a Team plan and caused confusion for users on other plans.
 
+**Known Limitations**:
+- `get_focus_insights`: Historical date ranges may return HTTP 500 errors.
+  Use recent date ranges (within last 30-90 days) for reliable results.
+
 ### Focus Time Tools (v0.7.0)
 
 | MCP Tool | API Endpoint(s) |
@@ -310,9 +314,19 @@ as they require a Team plan and caused confusion for users on other plans.
 | `unlock_focus_block` | POST /api/focus/planner/{calendarId}/{eventId}/unlock |
 | `reschedule_focus_block` | POST /api/focus/planner/{calendarId}/{eventId}/reschedule |
 
-## Input Validation (v0.7.2)
+## Input Validation (v0.7.2 - v0.7.3)
 
 The MCP server uses Pydantic models for centralized input validation, providing clear error messages before API calls.
+
+### Task Validation (v0.7.3)
+
+| Field | Rule | Error Message |
+|-------|------|---------------|
+| `title` | Cannot be empty or whitespace-only | "title cannot be empty or whitespace-only" |
+| `duration_minutes` | Must be > 0 | "Input should be greater than 0" |
+| `min_chunk_size_minutes` | Must be > 0 | "Input should be greater than 0" |
+| `max_chunk_size_minutes` | Must be > 0 (if provided) | "Input should be greater than 0" |
+| `min_chunk_size_minutes` vs `max_chunk_size_minutes` | min cannot exceed max | "min_chunk_size_minutes cannot exceed max_chunk_size_minutes" |
 
 ### Validated Enums
 

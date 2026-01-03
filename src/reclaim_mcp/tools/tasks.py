@@ -3,17 +3,25 @@
 from typing import Any, Optional
 
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
+from reclaim_mcp.models import TaskCreate, TaskUpdate
 
 
 def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
+
+
+def _format_validation_errors(e: ValidationError) -> str:
+    """Format Pydantic validation errors into a user-friendly message."""
+    errors = "; ".join(err["msg"] for err in e.errors())
+    return f"Invalid input: {errors}"
 
 
 @ttl_cache(ttl=60)
@@ -106,32 +114,41 @@ async def create_task(
     Returns:
         Created task object.
     """
-    # Validate priority
-    valid_priorities = {"P1", "P2", "P3", "P4"}
-    if priority not in valid_priorities:
-        raise ToolError(f"Invalid priority '{priority}'. Must be one of: {valid_priorities}")
+    # Validate input using Pydantic model
+    try:
+        validated = TaskCreate(
+            title=title,
+            duration_minutes=duration_minutes,
+            min_chunk_size_minutes=min_chunk_size_minutes,
+            max_chunk_size_minutes=max_chunk_size_minutes,
+            due_date=due_date,
+            snooze_until=snooze_until,
+            priority=priority,  # type: ignore[arg-type]
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
 
     try:
         client = _get_client()
 
         # Convert minutes to time chunks (Reclaim uses 15-min chunks)
-        time_chunks = duration_minutes // 15
+        time_chunks = validated.duration_minutes // 15
         if time_chunks < 1:
             time_chunks = 1
 
         payload: dict[str, Any] = {
-            "title": title,
+            "title": validated.title,
             "timeChunksRequired": time_chunks,
-            "minChunkSize": min_chunk_size_minutes,
-            "maxChunkSize": max_chunk_size_minutes or duration_minutes,
+            "minChunkSize": validated.min_chunk_size_minutes,
+            "maxChunkSize": validated.max_chunk_size_minutes or validated.duration_minutes,
             "eventCategory": "WORK",
-            "priority": priority,
+            "priority": validated.priority.value,
         }
 
-        if due_date is not None:
-            payload["deadline"] = due_date
-        if snooze_until is not None:
-            payload["snoozeUntil"] = snooze_until
+        if validated.due_date is not None:
+            payload["deadline"] = validated.due_date
+        if validated.snooze_until is not None:
+            payload["snoozeUntil"] = validated.snooze_until
 
         result = await client.post("/api/tasks", payload)
         invalidate_cache("list_tasks")
@@ -140,7 +157,7 @@ async def create_task(
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
-        raise ToolError(f"Error creating task '{title}': {e}")
+        raise ToolError(f"Error creating task '{validated.title}': {e}")
 
 
 async def update_task(
@@ -162,18 +179,29 @@ async def update_task(
     Returns:
         Updated task object.
     """
+    # Validate input using Pydantic model
+    try:
+        validated = TaskUpdate(
+            title=title,
+            duration_minutes=duration_minutes,
+            due_date=due_date,
+            status=status,  # type: ignore[arg-type]
+        )
+    except ValidationError as e:
+        raise ToolError(_format_validation_errors(e))
+
     try:
         client = _get_client()
 
         update_data: dict = {}
-        if title is not None:
-            update_data["title"] = title
-        if duration_minutes is not None:
-            update_data["timeChunksRequired"] = duration_minutes // 15
-        if due_date is not None:
-            update_data["due"] = due_date
-        if status is not None:
-            update_data["status"] = status
+        if validated.title is not None:
+            update_data["title"] = validated.title
+        if validated.duration_minutes is not None:
+            update_data["timeChunksRequired"] = validated.duration_minutes // 15
+        if validated.due_date is not None:
+            update_data["due"] = validated.due_date
+        if validated.status is not None:
+            update_data["status"] = validated.status.value
 
         result = await client.patch(f"/api/tasks/{task_id}", update_data)
         invalidate_cache("list_tasks")

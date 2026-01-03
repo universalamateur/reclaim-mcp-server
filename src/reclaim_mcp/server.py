@@ -3,7 +3,9 @@
 from typing import Optional
 
 from fastmcp import Context, FastMCP
+from fastmcp.exceptions import ToolError
 
+from reclaim_mcp import __version__
 from reclaim_mcp.tools import analytics, events, focus, habits, tasks
 
 mcp = FastMCP("Reclaim.ai")
@@ -12,7 +14,31 @@ mcp = FastMCP("Reclaim.ai")
 @mcp.tool
 def health_check() -> str:
     """Check if the server is running."""
-    return "OK"
+    return f"OK (v{__version__})"
+
+
+@mcp.tool
+async def verify_connection() -> dict:
+    """Verify API connection by fetching current user info.
+
+    Returns:
+        Connection status with user details (id, email, name).
+    """
+    try:
+        from reclaim_mcp.client import ReclaimClient
+        from reclaim_mcp.config import get_settings
+
+        settings = get_settings()
+        client = ReclaimClient(settings)
+        user = await client.get("/api/users/current")
+        return {
+            "status": "connected",
+            "user_id": user.get("id"),
+            "email": user.get("email"),
+            "name": user.get("name"),
+        }
+    except Exception as e:
+        raise ToolError(f"Connection failed: {e}")
 
 
 # Task Tools

@@ -1,7 +1,7 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: v0.7.2 Complete - 41 Tools
-**Date**: 2026-01-02
+**Status**: v0.7.3 Complete - 42 Tools
+**Date**: 2026-01-03
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
 ---
@@ -333,23 +333,51 @@ test:
 
 ---
 
-## Backlog (Future Releases)
+## Backlog
 
-### v0.7.3 (Patch) - QA Findings Fix
+### v0.8.0 (Minor) - Distribution Ready
 
-**Based on**: QA Report v0.7.2 (2026-01-02)
-**Tool Count**: 41 → 42 (adds verify_connection)
+**Goal**: Public release with tool profiles and distribution via PyPI/Smithery.
 
-#### HIGH Priority (Must Fix)
-- [ ] Add `Field(gt=0)` validators to TaskCreate for `duration_minutes`, `min_chunk_size_minutes`
-- [ ] Add `@field_validator` for task title (strip whitespace, reject empty)
-- [ ] Fix `list_personal_events` to default to current week when no dates provided
+#### Tool Profiles
 
-#### MEDIUM Priority (Should Fix)
-- [ ] Add `verify_connection` tool that calls `/api/users/current` to validate API key
-- [ ] Update `health_check` to return version: `"OK (v0.7.3)"` using `__version__`
-- [ ] Document `get_focus_insights` historical date limitation in API.md
+Environment variable: `RECLAIM_TOOL_PROFILE`
 
-#### Deferred to v0.7.4
-- [ ] Investigate `restart_task` API behavior (status remains ARCHIVED after restart)
-- [ ] WEEKLY habit `ideal_days` validation improvement
+| Profile | Tools | Description |
+|---------|-------|-------------|
+| `minimal` | ~20 | Tasks + Habits basics only |
+| `standard` | ~36 | Core productivity (excludes niche tools) |
+| `full` | 42 | All tools (default) |
+
+**Excluded from `standard` profile:**
+- `set_event_rsvp`, `pin_event`, `unpin_event`, `move_event`
+- `start_habit`, `stop_habit`, `lock_habit_instance`, `unlock_habit_instance`
+- `convert_event_to_habit`
+
+#### Distribution
+
+- [ ] PyPI publication (`pip install reclaim-mcp-server` / `uvx reclaim-mcp-server`)
+- [ ] Smithery.ai listing
+- [ ] Glama listing
+
+#### Implementation
+
+- [ ] Add `tool_profile` to `Settings` in `config.py` (default: "full")
+- [ ] Define `TOOL_PROFILES` dict with tool lists per profile
+- [ ] Create `@register_tool_if_enabled(name)` decorator
+- [ ] Apply decorator to all tools in `server.py`
+- [ ] Polish README (installation, usage, examples, env vars)
+
+---
+
+## Future Ideas
+
+Items to consider for future releases:
+
+| Idea | Description |
+|------|-------------|
+| MCP Resources | `reclaim://today`, `reclaim://tasks/active`, `reclaim://week` |
+| `restart_task` investigation | API returns ARCHIVED status after restart - unclear behavior |
+| WEEKLY habit validation | Improve `ideal_days` validation for WEEKLY frequency |
+| Scheduling links | List/create Reclaim scheduling links |
+| Availability slots | Find available time slots for meetings |

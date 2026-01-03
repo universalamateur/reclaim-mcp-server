@@ -40,19 +40,18 @@ class TestTaskCreateModel:
 
     def test_task_create_minimal(self) -> None:
         """Test TaskCreate with minimal required fields."""
-        task = TaskCreate(title="New Task", time_chunks_required=4)
+        task = TaskCreate(title="New Task", duration_minutes=60)
 
         assert task.title == "New Task"
-        assert task.time_chunks_required == 4
-        assert task.min_chunk_size == 15  # default
+        assert task.duration_minutes == 60
+        assert task.min_chunk_size_minutes == 15  # default
 
     def test_task_create_serialization(self) -> None:
         """Test TaskCreate serializes with correct field names."""
-        task = TaskCreate(title="New Task", time_chunks_required=4, min_chunk_size=30)
+        task = TaskCreate(title="New Task", duration_minutes=60, min_chunk_size_minutes=30)
 
-        # Use by_alias=True to get camelCase for API
-        data = task.model_dump(by_alias=True, exclude_none=True)
+        data = task.model_dump(exclude_none=True)
 
         assert data["title"] == "New Task"
-        assert data["timeChunksRequired"] == 4
-        assert data["minChunkSize"] == 30
+        assert data["duration_minutes"] == 60
+        assert data["min_chunk_size_minutes"] == 30

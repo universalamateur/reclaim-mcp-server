@@ -1,5 +1,6 @@
 """Calendar and event tools for Reclaim.ai."""
 
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from fastmcp.exceptions import ToolError
@@ -80,20 +81,27 @@ async def list_personal_events(
     """List Reclaim-managed personal events (tasks, habits, focus time).
 
     Args:
-        start: Optional start datetime in ISO format
-        end: Optional end datetime in ISO format
+        start: Optional start datetime in ISO format (defaults to today)
+        end: Optional end datetime in ISO format (defaults to 7 days from now)
         limit: Maximum number of events to return (default 50)
 
     Returns:
         List of personal event objects.
     """
+    # Default to current week if dates not provided
+    if start is None:
+        start = datetime.now().strftime("%Y-%m-%d")
+    if end is None:
+        end_date = datetime.now() + timedelta(days=7)
+        end = end_date.strftime("%Y-%m-%d")
+
     try:
         client = _get_client()
-        params: dict[str, Any] = {"limit": limit}
-        if start:
-            params["start"] = _extract_date(start)
-        if end:
-            params["end"] = _extract_date(end)
+        params: dict[str, Any] = {
+            "limit": limit,
+            "start": _extract_date(start),
+            "end": _extract_date(end),
+        }
 
         events = await client.get("/api/events/personal", params=params)
         return events

@@ -108,27 +108,52 @@ class Task(BaseModel):
 
 
 class TaskCreate(BaseModel):
-    """Request model for creating a task."""
+    """Request model for creating a task with validation."""
 
     title: str
-    time_chunks_required: int = Field(alias="timeChunksRequired")
-    min_chunk_size: int = Field(default=15, alias="minChunkSize")
-    max_chunk_size: Optional[int] = Field(default=None, alias="maxChunkSize")
-    due: Optional[str] = None
-    snooze_until: Optional[str] = Field(default=None, alias="snoozeUntil")
+    duration_minutes: int = Field(gt=0)
+    min_chunk_size_minutes: int = Field(default=15, gt=0)
+    max_chunk_size_minutes: Optional[int] = Field(default=None, gt=0)
+    due_date: Optional[str] = None
+    snooze_until: Optional[str] = None
+    priority: TaskPriority = TaskPriority.P2
 
-    model_config = {"populate_by_name": True}
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        """Validate title is not empty or whitespace-only."""
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("title cannot be empty or whitespace-only")
+        return stripped
+
+    @model_validator(mode="after")
+    def validate_task_constraints(self) -> "TaskCreate":
+        """Validate cross-field constraints."""
+        if self.max_chunk_size_minutes is not None:
+            if self.min_chunk_size_minutes > self.max_chunk_size_minutes:
+                raise ValueError("min_chunk_size_minutes cannot exceed max_chunk_size_minutes")
+        return self
 
 
 class TaskUpdate(BaseModel):
-    """Request model for updating a task."""
+    """Request model for updating a task with validation."""
 
     title: Optional[str] = None
-    time_chunks_required: Optional[int] = Field(default=None, alias="timeChunksRequired")
+    duration_minutes: Optional[int] = Field(default=None, gt=0)
     status: Optional[TaskStatus] = None
-    due: Optional[str] = None
+    due_date: Optional[str] = None
 
-    model_config = {"populate_by_name": True}
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: Optional[str]) -> Optional[str]:
+        """Validate title is not empty or whitespace-only if provided."""
+        if v is None:
+            return v
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("title cannot be empty or whitespace-only")
+        return stripped
 
 
 # --- Habit Validation Models ---

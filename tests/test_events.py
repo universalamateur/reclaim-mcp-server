@@ -101,17 +101,23 @@ class TestListPersonalEvents:
     async def test_list_personal_events_default(
         self, mock_client: MagicMock, mock_events_list_response: list[dict]
     ) -> None:
-        """Test list_personal_events with default parameters."""
+        """Test list_personal_events with default parameters.
+
+        When no dates are provided, defaults to current week (today + 7 days).
+        """
         mock_client.get.return_value = mock_events_list_response
 
         with patch.object(events, "_get_client", return_value=mock_client):
             result = await events.list_personal_events()
 
         assert result == mock_events_list_response
-        mock_client.get.assert_called_once_with(
-            "/api/events/personal",
-            params={"limit": 50},
-        )
+        # Verify call was made with dates (defaults to current week)
+        call_args = mock_client.get.call_args
+        assert call_args[0][0] == "/api/events/personal"
+        params = call_args[1]["params"]
+        assert params["limit"] == 50
+        assert "start" in params  # Now defaults to today
+        assert "end" in params  # Now defaults to today + 7 days
 
     @pytest.mark.asyncio
     async def test_list_personal_events_with_date_range(self, mock_client: MagicMock) -> None:
