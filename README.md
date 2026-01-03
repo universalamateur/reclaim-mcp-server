@@ -6,7 +6,7 @@ A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai
 
 ## Current Status
 
-**Version**: v0.7.4
+**Version**: v0.7.5
 **Status**: Production-ready with 42 tools
 
 | Feature | Status |

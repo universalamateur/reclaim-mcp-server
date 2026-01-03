@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-01-03
+
+### Fixed
+
+- **CRIT-001**: Fixed validation bypass for `Optional[int]` fields with `Field(gt=0)`
+  - Pydantic V2 doesn't enforce `gt=0` constraint on Optional types
+  - Added explicit `@field_validator` for 8 affected fields across models
+  - Affected: `TaskCreate`, `TaskUpdate`, `HabitCreate`, `HabitUpdate`, `FocusSettingsUpdate`
+
+### Changed
+
+- **OPP-001**: Extracted duplicated `format_validation_errors` helper to shared `utils.py`
+  - Reduces code duplication across 5 tool files
+  - Single source of truth for validation error formatting
+
+**Total tools: 42** (unchanged)
+
 ## [0.7.4] - 2026-01-03
 
 ### Fixed
