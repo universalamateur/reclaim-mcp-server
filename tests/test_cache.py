@@ -1,7 +1,5 @@
 """Tests for the TTL cache utility."""
 
-import time
-
 import pytest
 
 from reclaim_mcp.cache import get_cache_stats, invalidate_cache, ttl_cache
