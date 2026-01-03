@@ -10,18 +10,13 @@ from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
 from reclaim_mcp.models import CalendarEventId, EventInstanceId, HabitCreate, HabitId, HabitUpdate
+from reclaim_mcp.utils import format_validation_errors
 
 
 def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
-
-
-def _format_validation_errors(e: ValidationError) -> str:
-    """Format Pydantic validation errors into a user-friendly message."""
-    errors = "; ".join(err["msg"] for err in e.errors())
-    return f"Invalid input: {errors}"
 
 
 @ttl_cache(ttl=120)
@@ -55,7 +50,7 @@ async def get_habit(lineage_id: int) -> dict:
     try:
         validated = HabitId(lineage_id=lineage_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -116,7 +111,7 @@ async def create_habit(
             time_policy_type=time_policy_type,  # type: ignore[arg-type]
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -201,7 +196,7 @@ async def update_habit(
     try:
         validated_id = HabitId(lineage_id=lineage_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     # Validate update fields using Pydantic model
     try:
@@ -218,7 +213,7 @@ async def update_habit(
             description=description,
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -279,7 +274,7 @@ async def delete_habit(lineage_id: int) -> bool:
     try:
         validated = HabitId(lineage_id=lineage_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -308,7 +303,7 @@ async def mark_habit_done(event_id: str) -> dict:
     try:
         validated = EventInstanceId(event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -339,7 +334,7 @@ async def skip_habit(event_id: str) -> dict:
     try:
         validated = EventInstanceId(event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -368,7 +363,7 @@ async def lock_habit_instance(event_id: str) -> dict:
     try:
         validated = EventInstanceId(event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -397,13 +392,15 @@ async def unlock_habit_instance(event_id: str) -> dict:
     try:
         validated = EventInstanceId(event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
+        # fmt: off
         result = await client.post(
             f"/api/smart-habits/planner/{validated.event_id}/unlock", data={}
         )
+        # fmt: on
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
@@ -428,13 +425,15 @@ async def start_habit(lineage_id: int) -> dict:
     try:
         validated = HabitId(lineage_id=lineage_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
+        # fmt: off
         result = await client.post(
             f"/api/smart-habits/planner/{validated.lineage_id}/start", data={}
         )
+        # fmt: on
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
@@ -459,13 +458,15 @@ async def stop_habit(lineage_id: int) -> dict:
     try:
         validated = HabitId(lineage_id=lineage_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
+        # fmt: off
         result = await client.post(
             f"/api/smart-habits/planner/{validated.lineage_id}/stop", data={}
         )
+        # fmt: on
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return result
@@ -490,7 +491,7 @@ async def enable_habit(lineage_id: int) -> dict:
     try:
         validated = HabitId(lineage_id=lineage_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -519,7 +520,7 @@ async def disable_habit(lineage_id: int) -> bool:
     try:
         validated = HabitId(lineage_id=lineage_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -575,7 +576,7 @@ async def convert_event_to_habit(
     try:
         validated_event = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     # Validate habit fields using Pydantic model
     try:
@@ -593,7 +594,7 @@ async def convert_event_to_habit(
             time_policy_type=time_policy_type,  # type: ignore[arg-type]
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -641,10 +642,12 @@ async def convert_event_to_habit(
         invalidate_cache("get_habit")
         return habit
     except NotFoundError:
+        # fmt: off
         raise ToolError(
             f"Event {validated_event.event_id} not found in calendar "
             f"{validated_event.calendar_id}"
         )
+        # fmt: on
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:

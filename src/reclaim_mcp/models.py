@@ -152,6 +152,14 @@ class TaskCreate(BaseModel):
         """Validate due_date is in YYYY-MM-DD format."""
         return _validate_date_format(v)
 
+    @field_validator("max_chunk_size_minutes")
+    @classmethod
+    def validate_max_chunk_positive(cls, v: Optional[int]) -> Optional[int]:
+        """Validate max_chunk_size_minutes is positive when provided."""
+        if v is not None and v <= 0:
+            raise ValueError("max_chunk_size_minutes must be greater than 0")
+        return v
+
     @model_validator(mode="after")
     def validate_task_constraints(self) -> "TaskCreate":
         """Validate cross-field constraints."""
@@ -165,9 +173,17 @@ class TaskUpdate(BaseModel):
     """Request model for updating a task with validation."""
 
     title: Optional[str] = None
-    duration_minutes: Optional[int] = Field(default=None, gt=0)
+    duration_minutes: Optional[int] = Field(default=None)
     status: Optional[TaskStatus] = None
     due_date: Optional[str] = None
+
+    @field_validator("duration_minutes")
+    @classmethod
+    def validate_duration_positive(cls, v: Optional[int]) -> Optional[int]:
+        """Validate duration_minutes is positive when provided."""
+        if v is not None and v <= 0:
+            raise ValueError("duration_minutes must be greater than 0")
+        return v
 
     @field_validator("title")
     @classmethod
@@ -196,7 +212,7 @@ class HabitCreate(BaseModel):
     title: str
     ideal_time: str
     duration_min_mins: int = Field(gt=0)
-    duration_max_mins: Optional[int] = Field(default=None, gt=0)
+    duration_max_mins: Optional[int] = Field(default=None)
     frequency: HabitFrequency = HabitFrequency.WEEKLY
     ideal_days: Optional[list[DayOfWeek]] = None
     event_type: EventType = EventType.SOLO_WORK
@@ -204,6 +220,14 @@ class HabitCreate(BaseModel):
     description: Optional[str] = None
     enabled: bool = True
     time_policy_type: Optional[TimePolicyType] = None
+
+    @field_validator("duration_max_mins")
+    @classmethod
+    def validate_duration_max_positive(cls, v: Optional[int]) -> Optional[int]:
+        """Validate duration_max_mins is positive when provided."""
+        if v is not None and v <= 0:
+            raise ValueError("duration_max_mins must be greater than 0")
+        return v
 
     @field_validator("ideal_time")
     @classmethod
@@ -239,14 +263,22 @@ class HabitUpdate(BaseModel):
 
     title: Optional[str] = None
     ideal_time: Optional[str] = None
-    duration_min_mins: Optional[int] = Field(default=None, gt=0)
-    duration_max_mins: Optional[int] = Field(default=None, gt=0)
+    duration_min_mins: Optional[int] = Field(default=None)
+    duration_max_mins: Optional[int] = Field(default=None)
     enabled: Optional[bool] = None
     frequency: Optional[HabitFrequency] = None
     ideal_days: Optional[list[DayOfWeek]] = None
     event_type: Optional[EventType] = None
     defense_aggression: Optional[DefenseAggression] = None
     description: Optional[str] = None
+
+    @field_validator("duration_min_mins", "duration_max_mins")
+    @classmethod
+    def validate_durations_positive(cls, v: Optional[int]) -> Optional[int]:
+        """Validate duration fields are positive when provided."""
+        if v is not None and v <= 0:
+            raise ValueError("duration must be greater than 0")
+        return v
 
     @field_validator("ideal_time")
     @classmethod
@@ -342,11 +374,19 @@ class TimeLog(BaseModel):
 class FocusSettingsUpdate(BaseModel):
     """Validation model for updating focus settings."""
 
-    min_duration_mins: Optional[int] = Field(default=None, gt=0)
-    ideal_duration_mins: Optional[int] = Field(default=None, gt=0)
-    max_duration_mins: Optional[int] = Field(default=None, gt=0)
+    min_duration_mins: Optional[int] = Field(default=None)
+    ideal_duration_mins: Optional[int] = Field(default=None)
+    max_duration_mins: Optional[int] = Field(default=None)
     defense_aggression: Optional[DefenseAggression] = None
     enabled: Optional[bool] = None
+
+    @field_validator("min_duration_mins", "ideal_duration_mins", "max_duration_mins")
+    @classmethod
+    def validate_durations_positive(cls, v: Optional[int]) -> Optional[int]:
+        """Validate duration fields are positive when provided."""
+        if v is not None and v <= 0:
+            raise ValueError("duration must be greater than 0")
+        return v
 
     @model_validator(mode="after")
     def validate_duration_order(self) -> "FocusSettingsUpdate":

@@ -10,18 +10,13 @@ from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
 from reclaim_mcp.models import ListLimit, TaskCreate, TaskId, TaskListParams, TaskUpdate, TimeLog
+from reclaim_mcp.utils import format_validation_errors
 
 
 def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
-
-
-def _format_validation_errors(e: ValidationError) -> str:
-    """Format Pydantic validation errors into a user-friendly message."""
-    errors = "; ".join(err["msg"] for err in e.errors())
-    return f"Invalid input: {errors}"
 
 
 @ttl_cache(ttl=60)
@@ -42,7 +37,7 @@ async def list_tasks(
     try:
         validated = TaskListParams(status=status, limit=limit)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -69,7 +64,7 @@ async def list_completed_tasks(limit: int = 50) -> list[dict]:
     try:
         validated = ListLimit(limit=limit)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -95,7 +90,7 @@ async def get_task(task_id: int) -> dict:
     try:
         validated = TaskId(task_id=task_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -144,7 +139,7 @@ async def create_task(
             priority=priority,  # type: ignore[arg-type]
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -201,7 +196,7 @@ async def update_task(
     try:
         validated_id = TaskId(task_id=task_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     # Validate update fields using Pydantic model
     try:
@@ -212,7 +207,7 @@ async def update_task(
             status=status,  # type: ignore[arg-type]
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -252,7 +247,7 @@ async def mark_task_complete(task_id: int) -> dict:
     try:
         validated = TaskId(task_id=task_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -281,7 +276,7 @@ async def delete_task(task_id: int) -> bool:
     try:
         validated = TaskId(task_id=task_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -314,13 +309,13 @@ async def add_time_to_task(
     try:
         validated_id = TaskId(task_id=task_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     # Validate minutes using Pydantic model
     try:
         validated = TimeLog(minutes=minutes)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -360,7 +355,7 @@ async def start_task(task_id: int) -> dict:
     try:
         validated = TaskId(task_id=task_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -388,7 +383,7 @@ async def stop_task(task_id: int) -> dict:
     try:
         validated = TaskId(task_id=task_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -416,7 +411,7 @@ async def prioritize_task(task_id: int) -> dict:
     try:
         validated = TaskId(task_id=task_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -444,7 +439,7 @@ async def restart_task(task_id: int) -> dict:
     try:
         validated = TaskId(task_id=task_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()

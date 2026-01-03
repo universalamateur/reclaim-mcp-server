@@ -10,7 +10,9 @@ from reclaim_mcp.cache import invalidate_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
-from reclaim_mcp.models import (
+from reclaim_mcp.utils import format_validation_errors
+
+from reclaim_mcp.models import (  # isort: skip
     CalendarEventId,
     DateRange,
     EventMove,
@@ -24,12 +26,6 @@ def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
-
-
-def _format_validation_errors(e: ValidationError) -> str:
-    """Format Pydantic validation errors into a user-friendly message."""
-    errors = "; ".join(err["msg"] for err in e.errors())
-    return f"Invalid input: {errors}"
 
 
 def _extract_date(datetime_str: str) -> str:
@@ -64,7 +60,7 @@ async def list_events(
     try:
         validated = DateRange(start=_extract_date(start), end=_extract_date(end))
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -105,7 +101,7 @@ async def list_personal_events(
     try:
         validated_limit = ListLimit(limit=limit)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     # Default to current week if dates not provided
     start_date = start
@@ -119,10 +115,11 @@ async def list_personal_events(
     # Validate dates using Pydantic model
     try:
         validated_dates = OptionalDateRange(
-            start=_extract_date(start_date), end=_extract_date(end_date)
+            start=_extract_date(start_date),
+            end=_extract_date(end_date),
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -165,7 +162,7 @@ async def get_event(
     try:
         validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -176,10 +173,12 @@ async def get_event(
         )
         return event
     except NotFoundError:
+        # fmt: off
         raise ToolError(
             f"Event {validated.event_id} not found in calendar "
             f"{validated.calendar_id}"
         )
+        # fmt: on
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -200,7 +199,7 @@ async def pin_event(calendar_id: int, event_id: str) -> dict:
     try:
         validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -212,10 +211,12 @@ async def pin_event(calendar_id: int, event_id: str) -> dict:
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
+        # fmt: off
         raise ToolError(
             f"Event {validated.event_id} not found in calendar "
             f"{validated.calendar_id}"
         )
+        # fmt: on
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -236,7 +237,7 @@ async def unpin_event(calendar_id: int, event_id: str) -> dict:
     try:
         validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -248,10 +249,12 @@ async def unpin_event(calendar_id: int, event_id: str) -> dict:
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
+        # fmt: off
         raise ToolError(
             f"Event {validated.event_id} not found in calendar "
             f"{validated.calendar_id}"
         )
+        # fmt: on
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -283,7 +286,7 @@ async def set_event_rsvp(
             rsvp_status=rsvp_status,  # type: ignore[arg-type]
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -327,7 +330,7 @@ async def move_event(
             end_time=end_time,
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()

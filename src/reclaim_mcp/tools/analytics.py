@@ -10,18 +10,13 @@ from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import RateLimitError, ReclaimError
 from reclaim_mcp.models import DateRange, UserAnalyticsRequest
+from reclaim_mcp.utils import format_validation_errors
 
 
 def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
-
-
-def _format_validation_errors(e: ValidationError) -> str:
-    """Format Pydantic validation errors into a user-friendly message."""
-    errors = "; ".join(err["msg"] for err in e.errors())
-    return f"Invalid input: {errors}"
 
 
 @ttl_cache(ttl=300)
@@ -52,7 +47,7 @@ async def get_user_analytics(
             metric_name=metric_name,  # type: ignore[arg-type]
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -88,7 +83,7 @@ async def get_focus_insights(
     try:
         validated = DateRange(start=start, end=end)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()

@@ -10,18 +10,13 @@ from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
 from reclaim_mcp.models import CalendarEventId, FocusReschedule, FocusSettingsUpdate
+from reclaim_mcp.utils import format_validation_errors
 
 
 def _get_client() -> ReclaimClient:
     """Get a configured Reclaim client."""
     settings = get_settings()
     return ReclaimClient(settings)
-
-
-def _format_validation_errors(e: ValidationError) -> str:
-    """Format Pydantic validation errors into a user-friendly message."""
-    errors = "; ".join(err["msg"] for err in e.errors())
-    return f"Invalid input: {errors}"
 
 
 @ttl_cache(ttl=120)
@@ -72,7 +67,7 @@ async def update_focus_settings(
             enabled=enabled,
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -114,7 +109,7 @@ async def lock_focus_block(calendar_id: int, event_id: str) -> dict:
     try:
         validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -126,10 +121,12 @@ async def lock_focus_block(calendar_id: int, event_id: str) -> dict:
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
+        # fmt: off
         raise ToolError(
             f"Focus block {validated.event_id} not found in calendar "
             f"{validated.calendar_id}"
         )
+        # fmt: on
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -150,7 +147,7 @@ async def unlock_focus_block(calendar_id: int, event_id: str) -> dict:
     try:
         validated = CalendarEventId(calendar_id=calendar_id, event_id=event_id)
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -162,10 +159,12 @@ async def unlock_focus_block(calendar_id: int, event_id: str) -> dict:
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
+        # fmt: off
         raise ToolError(
             f"Focus block {validated.event_id} not found in calendar "
             f"{validated.calendar_id}"
         )
+        # fmt: on
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -198,7 +197,7 @@ async def reschedule_focus_block(
             end_time=end_time,
         )
     except ValidationError as e:
-        raise ToolError(_format_validation_errors(e))
+        raise ToolError(format_validation_errors(e))
 
     try:
         client = _get_client()
@@ -216,10 +215,12 @@ async def reschedule_focus_block(
         invalidate_cache("list_personal_events")
         return result
     except NotFoundError:
+        # fmt: off
         raise ToolError(
             f"Focus block {validated.event_id} not found in calendar "
             f"{validated.calendar_id}"
         )
+        # fmt: on
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
