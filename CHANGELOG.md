@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-01-04
+
+### Added
+
+- **Tool Profiles**: Control which tools are exposed via `RECLAIM_TOOL_PROFILE` environment variable
+  - `minimal`: 20 core tools (tasks, habits basics, events)
+  - `standard`: 32 tools (adds workflow and focus management)
+  - `full`: 42 tools (all tools, default)
+- **Docker Distribution**: Multi-stage build with non-root user
+  - Available at `universalamateur/reclaim-mcp-server`
+- **Multi-Registry Publishing**: GitLab CI pipeline for PyPI, TestPyPI, GitLab Package Registry, GitLab Container Registry, and DockerHub
+- **OIDC Trusted Publishing**: Secure PyPI releases without token secrets
+- **Trivy Container Scanning**: Free vulnerability scanning for Docker images (HIGH/CRITICAL)
+- **CI Workflow Optimization**: Use `$CI_COMMIT_REF_PROTECTED` to prevent duplicate pipelines
+
+### Changed
+
+- Custom `@tool` decorator in server.py for profile-based registration
+- Updated documentation for PyPI and Docker installation options
+
+**Total tools: 42** (unchanged, but configurable via profiles)
+
 ## [0.7.5] - 2026-01-03
 
 ### Fixed

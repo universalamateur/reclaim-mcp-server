@@ -2,7 +2,7 @@
 
 This is a Python MCP (Model Context Protocol) server for Reclaim.ai integration, built with FastMCP.
 
-**Current Version**: v0.7.5 (42 tools)
+**Current Version**: v0.8.0 (42 tools, configurable via profiles)
 
 ## Purpose
 
@@ -19,8 +19,9 @@ Provides MCP tools for AI assistants to interact with Reclaim.ai's API, enabling
 ```
 src/reclaim_mcp/
 ├── __init__.py           # Package version
-├── server.py             # FastMCP server and tool definitions
-├── config.py             # Pydantic Settings for API configuration
+├── server.py             # FastMCP server + custom @tool decorator
+├── profiles.py           # Tool profile definitions (minimal/standard/full)
+├── config.py             # Pydantic Settings (API + RECLAIM_TOOL_PROFILE)
 ├── client.py             # Async httpx client for Reclaim API
 ├── cache.py              # TTL caching with @ttl_cache
 ├── exceptions.py         # Custom exceptions
@@ -42,7 +43,7 @@ tests/
 
 ## Technology Stack
 
-- **Python**: 3.10+
+- **Python**: 3.12+
 - **FastMCP**: MCP server framework
 - **httpx**: Async HTTP client
 - **Pydantic**: Data validation and settings
@@ -108,6 +109,7 @@ Failing to do this will cause CI pipeline failures.
 |----------|----------|-------------|
 | `RECLAIM_API_KEY` | Yes | Reclaim.ai API token |
 | `RECLAIM_BASE_URL` | No | API base URL (default: https://api.app.reclaim.ai) |
+| `RECLAIM_TOOL_PROFILE` | No | Tool profile: minimal (20), standard (32), full (42, default) |
 
 ## Running Locally
 

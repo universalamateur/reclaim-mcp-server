@@ -1,5 +1,16 @@
+# =============================================================================
+# GitLab CI/CD Pipeline for reclaim-mcp-server
+# =============================================================================
+# Publishes to:
+# - GitLab Package Registry (Python)
+# - PyPI (Python)
+# - TestPyPI (Python)
+# - GitLab Container Registry (Docker)
+# - DockerHub (Docker)
+# =============================================================================
+
 default:
-  image: python:3.10
+  image: python:3.12
   retry: 2
   interruptible: true
 
@@ -7,16 +18,25 @@ stages:
   - lint
   - test
   - security
+  - build
+  - publish
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   SAST_EXCLUDED_PATHS: "spec,test,tests,tmp,.venv"
+  # Docker configuration
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_DRIVER: overlay2
+  # Image names
+  GITLAB_IMAGE: $CI_REGISTRY_IMAGE
+  DOCKERHUB_IMAGE: docker.io/$DOCKERHUB_USERNAME/reclaim-mcp-server
 
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_TAG
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
 
 include:
   - template: Jobs/SAST.gitlab-ci.yml
@@ -28,16 +48,36 @@ cache:
     - .cache/pip
     - .venv
 
+# =============================================================================
+# TEMPLATES
+# =============================================================================
+
 .poetry-setup:
   before_script:
     - pip install poetry
     - poetry config virtualenvs.in-project true
     - poetry install
 
+.docker-setup:
+  image: docker:24.0.5-cli
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker info
+
 .standard-rules:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+
+.tag-only-rules:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+
+# =============================================================================
+# LINT STAGE
+# =============================================================================
 
 lint:
   stage: lint
@@ -49,6 +89,10 @@ lint:
     - poetry run isort --check-only src tests
     - poetry run flake8 src tests
     - poetry run mypy src
+
+# =============================================================================
+# TEST STAGE
+# =============================================================================
 
 test:
   stage: test
@@ -64,3 +108,174 @@ test:
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
+
+# =============================================================================
+# BUILD STAGE
+# =============================================================================
+
+# Build Python package
+build-package:
+  stage: build
+  extends:
+    - .poetry-setup
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  script:
+    - poetry build
+    - poetry run twine check dist/*
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+
+# Build Docker image (only on tags)
+build-docker:
+  stage: build
+  extends:
+    - .docker-setup
+  needs: [build-package, test]
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - docker build -t reclaim-mcp-server:$CI_COMMIT_SHORT_SHA .
+    - docker save reclaim-mcp-server:$CI_COMMIT_SHORT_SHA > image.tar
+  artifacts:
+    paths:
+      - image.tar
+    expire_in: 1 day
+
+# Container vulnerability scanning (free alternative to GitLab Ultimate)
+container-scan:
+  stage: security
+  image: aquasec/trivy:latest
+  needs: [build-docker]
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - trivy image --input image.tar --format table --severity HIGH,CRITICAL
+    - trivy image --input image.tar --exit-code 1 --severity CRITICAL
+  allow_failure: true
+
+# =============================================================================
+# PUBLISH STAGE - Python Packages
+# =============================================================================
+
+# Publish to GitLab Package Registry
+publish-gitlab-package:
+  stage: publish
+  image: python:3.12
+  needs: [build-package, test]
+  variables:
+    TWINE_USERNAME: gitlab-ci-token
+    TWINE_PASSWORD: $CI_JOB_TOKEN
+  script:
+    - pip install twine
+    - python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+      allow_failure: true
+
+# Publish to TestPyPI
+publish-testpypi:
+  stage: publish
+  image: python:3.12
+  needs: [build-package, test]
+  id_tokens:
+    PYPI_ID_TOKEN:
+      aud: testpypi
+  script:
+    - pip install twine
+    - |
+      echo "Exchanging OIDC token for TestPyPI..."
+      RESPONSE=$(curl -s -X POST "https://test.pypi.org/_/oidc/mint-token" \
+        -H "Content-Type: application/json" \
+        -d "{\"token\": \"${PYPI_ID_TOKEN}\"}")
+      PYPI_TOKEN=$(echo "${RESPONSE}" | python -c "import sys, json; data=json.load(sys.stdin); print(data.get('token', '')); exit(0 if 'token' in data else 1)")
+      if [ -z "$PYPI_TOKEN" ]; then
+        echo "Token exchange failed: $RESPONSE"
+        exit 1
+      fi
+    - twine upload --non-interactive -u __token__ -p "${PYPI_TOKEN}" --repository-url https://test.pypi.org/legacy/ dist/*
+  environment:
+    name: release-test
+    url: https://test.pypi.org/project/reclaim-mcp-server/
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+      allow_failure: true
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+      when: manual
+      allow_failure: true
+
+# Publish to Production PyPI
+publish-pypi:
+  stage: publish
+  image: python:3.12
+  needs: [build-package, test]
+  id_tokens:
+    PYPI_ID_TOKEN:
+      aud: pypi
+  script:
+    - pip install twine
+    - |
+      echo "Exchanging OIDC token for PyPI..."
+      RESPONSE=$(curl -s -X POST "https://pypi.org/_/oidc/mint-token" \
+        -H "Content-Type: application/json" \
+        -d "{\"token\": \"${PYPI_ID_TOKEN}\"}")
+      PYPI_TOKEN=$(echo "${RESPONSE}" | python -c "import sys, json; data=json.load(sys.stdin); print(data.get('token', '')); exit(0 if 'token' in data else 1)")
+      if [ -z "$PYPI_TOKEN" ]; then
+        echo "Token exchange failed: $RESPONSE"
+        exit 1
+      fi
+    - twine upload --non-interactive -u __token__ -p "${PYPI_TOKEN}" dist/*
+  environment:
+    name: release
+    url: https://pypi.org/project/reclaim-mcp-server/
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+
+# =============================================================================
+# PUBLISH STAGE - Docker Images
+# =============================================================================
+
+# Publish to GitLab Container Registry
+publish-gitlab-container:
+  stage: publish
+  extends:
+    - .docker-setup
+  needs: [build-docker]
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker load < image.tar
+  script:
+    - docker tag reclaim-mcp-server:$CI_COMMIT_SHORT_SHA $GITLAB_IMAGE:$CI_COMMIT_TAG
+    - docker tag reclaim-mcp-server:$CI_COMMIT_SHORT_SHA $GITLAB_IMAGE:latest
+    - docker push $GITLAB_IMAGE:$CI_COMMIT_TAG
+    - docker push $GITLAB_IMAGE:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+
+# Publish to DockerHub
+publish-dockerhub:
+  stage: publish
+  extends:
+    - .docker-setup
+  needs: [build-docker]
+  before_script:
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - docker load < image.tar
+  script:
+    - docker tag reclaim-mcp-server:$CI_COMMIT_SHORT_SHA $DOCKERHUB_IMAGE:$CI_COMMIT_TAG
+    - docker tag reclaim-mcp-server:$CI_COMMIT_SHORT_SHA $DOCKERHUB_IMAGE:latest
+    - docker push $DOCKERHUB_IMAGE:$CI_COMMIT_TAG
+    - docker push $DOCKERHUB_IMAGE:latest
+  environment:
+    name: docker
+    url: https://hub.docker.com/r/$DOCKERHUB_USERNAME/reclaim-mcp-server
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual

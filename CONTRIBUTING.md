@@ -1,12 +1,32 @@
 # Contributing to reclaim-mcp-server
 
-Thank you for your interest in contributing!
+Thank you for your interest in contributing! We welcome contributions of all kinds: bug reports, feature requests, documentation improvements, and code changes.
+
+## Code of Conduct
+
+Please be respectful and constructive in all interactions. We aim to maintain a welcoming environment for everyone.
+
+## How to Contribute
+
+### Reporting Bugs
+
+Found a bug? Please [open an issue](https://gitlab.com/universalamateur1/reclaim-mcp-server/-/issues/new?issuable_template=Bug) using our bug template. Include:
+- Steps to reproduce
+- Expected vs actual behavior
+- Your environment (Python version, OS)
+
+### Suggesting Features
+
+Have an idea? [Open a feature request](https://gitlab.com/universalamateur1/reclaim-mcp-server/-/issues/new?issuable_template=Feature) with:
+- Clear description of the feature
+- Use case / motivation
+- Any implementation ideas
 
 ## Development Setup
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.12+
 - Poetry 2.x
 
 ### Installation

@@ -1,7 +1,7 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: v0.7.5 Complete - 42 Tools
-**Date**: 2026-01-03
+**Status**: v0.8.0 - 42 Tools (configurable via profiles)
+**Date**: 2026-01-04
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
 ---
@@ -70,17 +70,20 @@ reclaim-mcp-server/
 ├── src/
 │   └── reclaim_mcp/
 │       ├── __init__.py
-│       ├── server.py           # FastMCP server entry point
+│       ├── server.py           # FastMCP server + custom @tool decorator
+│       ├── profiles.py         # Tool profiles (minimal/standard/full)
 │       ├── client.py           # Reclaim API client (httpx)
 │       ├── config.py           # Environment/settings
+│       ├── cache.py            # TTL caching with @ttl_cache
+│       ├── exceptions.py       # Custom exceptions
 │       ├── models.py           # Pydantic models
 │       └── tools/
 │           ├── __init__.py
-│           ├── tasks.py        # Task management (v0.1.0)
-│           ├── events.py       # Calendar/events (v0.2.0)
-│           ├── habits.py       # Habits (v0.3.0)
-│           ├── focus.py        # Focus time (v0.3.0)
-│           └── analytics.py    # Analytics (v1.0.0)
+│           ├── tasks.py        # 12 task tools
+│           ├── events.py       # 7 event tools
+│           ├── habits.py       # 14 habit tools
+│           ├── focus.py        # 5 focus tools
+│           └── analytics.py    # 2 analytics tools
 ├── tests/
 │   ├── conftest.py
 │   ├── test_client.py
@@ -333,70 +336,61 @@ test:
 
 ---
 
-## Backlog
+## Roadmap
 
-### v0.8.0 (Minor) - Distribution Ready
+### v0.8.0 (Current) ✅
 
-**Goal**: Public release with tool profiles, CI/CD release pipeline, and distribution via PyPI/Smithery.
+**Theme**: Distribution & Profiles
 
-#### Tool Profiles
+- [x] Tool profiles (minimal=20, standard=32, full=42)
+- [x] Docker distribution (non-root, multi-stage build)
+- [x] Python 3.12 upgrade
+- [x] Multi-registry publishing (PyPI, DockerHub, GitLab)
+- [x] OIDC Trusted Publishing for PyPI
+- [x] Trivy container scanning
+- [x] CI workflow optimization (`$CI_COMMIT_REF_PROTECTED`)
 
-Environment variable: `RECLAIM_TOOL_PROFILE`
+### v0.9.0 (Next)
 
-| Profile | Tools | Description |
-|---------|-------|-------------|
-| `minimal` | ~20 | Tasks + Habits basics only |
-| `standard` | ~36 | Core productivity (excludes niche tools) |
-| `full` | 42 | All tools (default) |
+**Theme**: Discoverability via MCP Registries
 
-**Excluded from `standard` profile:**
-- `set_event_rsvp`, `pin_event`, `unpin_event`, `move_event`
-- `start_habit`, `stop_habit`, `lock_habit_instance`, `unlock_habit_instance`
-- `convert_event_to_habit`
+**Prerequisites** (one-time setup):
+- GitHub mirror: `github.com/universalamateur/reclaim-mcp-server`
+- GitLab Push Mirror configuration
+- Smithery.ai account (GitHub OAuth)
+- mcp-publisher CLI
 
-#### GitLab CI Release Pipeline
+**Files to add**:
+- `smithery.yaml` - Smithery.ai deployment config
+- `server.json` - MCP Registry definition
+- Update `Dockerfile` - MCP namespace labels
+- Update `README.md` - MCP marker + badges
 
-Tag-based release automation:
+**Registries**:
+- Smithery.ai (https://smithery.ai/server/reclaim-mcp-server)
+- MCP Registry (https://registry.modelcontextprotocol.io/)
+- Glama (auto-syncs from MCP Registry)
 
-- [ ] Add `release` stage to `.gitlab-ci.yml`
-- [ ] Create `build` job: `poetry build` (wheel + sdist)
-- [ ] Create `publish-pypi` job: publish to PyPI via `twine` or `poetry publish`
-- [ ] Create `publish-gitlab` job: publish to GitLab Package Registry
-- [ ] Add CI/CD variables: `PYPI_TOKEN`, `TWINE_USERNAME`, `TWINE_PASSWORD`
-- [ ] Configure release rules: `if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/`
-- [ ] Create GitLab Release with changelog via `release-cli`
+### v0.10.0 (Planned)
 
-#### Distribution
+**Theme**: Cross-Architecture Support
 
-- [ ] PyPI publication (`pip install reclaim-mcp-server` / `uvx reclaim-mcp-server`)
-- [ ] Smithery.ai listing
-- [ ] Glama listing
+- Multi-platform Docker builds (linux/amd64 + linux/arm64)
+- buildx setup in CI
+- Manifest list for multi-arch support
 
-#### Implementation
+### v1.0.0+ (Future)
 
-- [ ] Add `tool_profile` to `Settings` in `config.py` (default: "full")
-- [ ] Define `TOOL_PROFILES` dict with tool lists per profile
-- [ ] Create `@register_tool_if_enabled(name)` decorator
-- [ ] Apply decorator to all tools in `server.py`
-- [ ] Polish README (installation, usage, examples, env vars)
-
-#### Documentation Fixes (Completed in v0.7.5)
-
-- [x] Update README.md version to v0.7.5 with 42 tools
-- [x] Add v0.7.2, v0.7.3, v0.7.4, v0.7.5 entries to CHANGELOG.md
-- [x] Update docs/API.md with v0.7.4 breaking changes
-- [x] Update CLAUDE.md and AGENTS.md versions
+- MCP Resources (`reclaim://today`, `reclaim://tasks/active`)
+- Additional Reclaim API coverage
+- OAuth flow for API key setup
 
 ---
 
-## Future Ideas
+## Known Limitations
 
-Items to consider for future releases:
-
-| Idea | Description |
-|------|-------------|
-| MCP Resources | `reclaim://today`, `reclaim://tasks/active`, `reclaim://week` |
-| `restart_task` investigation | API returns ARCHIVED status after restart - unclear behavior |
-| WEEKLY habit validation | Improve `ideal_days` validation for WEEKLY frequency |
-| Scheduling links | List/create Reclaim scheduling links |
-| Availability slots | Find available time slots for meetings |
+| Issue | Description |
+|-------|-------------|
+| Team analytics | Plan-gated (removed in v0.7.1) |
+| `restart_task` | API returns ARCHIVED status - unclear behavior |
+| Multi-platform | Docker builds single-arch only until v0.10.0 |

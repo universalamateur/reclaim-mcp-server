@@ -1,13 +1,16 @@
 # Reclaim.ai MCP Server _(UNOFFICIAL)_
 
+[![PyPI version](https://badge.fury.io/py/reclaim-mcp-server.svg)](https://pypi.org/project/reclaim-mcp-server/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > **UNOFFICIAL & UNAFFILIATED** – This project is **not** endorsed, sponsored, or supported by Reclaim.ai. It uses Reclaim's public API. Use at your own risk and comply with [Reclaim's Terms of Service](https://reclaim.ai/terms).
 
 A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai) built with [FastMCP](https://gofastmcp.com).
 
 ## Current Status
 
-**Version**: v0.7.5
-**Status**: Production-ready with 42 tools
+**Version**: v0.8.0
+**Status**: Production-ready with 42 tools (configurable via profiles)
 
 | Feature | Status |
 |---------|--------|
@@ -18,47 +21,63 @@ A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai
 | Focus Time | ✅ Complete (5 tools) |
 | Utility | ✅ Complete (2 tools) |
 
+## Requirements
+
+Get your Reclaim.ai API key from: https://app.reclaim.ai/settings/developer
+
 ## Installation
 
-### Option 1: uvx (Recommended)
+### Option 1: PyPI (Recommended)
 
 ```bash
-# Run directly without installation
-uvx --from git+https://gitlab.com/universalamateur1/reclaim-mcp-server.git reclaim-mcp-server
+pip install reclaim-mcp-server
 ```
 
-### Option 2: Poetry
+### Option 2: Docker
 
 ```bash
-# Clone the repo
+docker pull universalamateur/reclaim-mcp-server:latest
+```
+
+### Option 3: From Source
+
+```bash
 git clone https://gitlab.com/universalamateur1/reclaim-mcp-server.git
 cd reclaim-mcp-server
-
-# Install dependencies
 poetry install
-
-# Set your API key
-export RECLAIM_API_KEY="your_key_here"
-# Get key from: https://app.reclaim.ai/settings/developer
-
-# Run the server
-poetry run reclaim-mcp-server
 ```
 
 ## Claude Desktop Configuration
 
-### Using uvx
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (replace `your_key_here` with your API key):
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+### Using uvx (Recommended)
 
 ```json
 {
   "mcpServers": {
     "reclaim": {
       "command": "uvx",
+      "args": ["reclaim-mcp-server"],
+      "env": {
+        "RECLAIM_API_KEY": "your_key_here"
+      }
+    }
+  }
+}
+```
+
+### Using Docker
+
+```json
+{
+  "mcpServers": {
+    "reclaim": {
+      "command": "docker",
       "args": [
-        "--from", "git+https://gitlab.com/universalamateur1/reclaim-mcp-server.git",
-        "reclaim-mcp-server"
+        "run", "-i", "--rm",
+        "-e", "RECLAIM_API_KEY",
+        "universalamateur/reclaim-mcp-server:latest"
       ],
       "env": {
         "RECLAIM_API_KEY": "your_key_here"
@@ -68,7 +87,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-### Using Poetry
+### Using Poetry (from source)
 
 ```json
 {
@@ -88,6 +107,42 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```
 
 **Note**: Use the `--directory` flag instead of `cwd` - Claude Desktop doesn't respect the `cwd` setting.
+
+## Tool Profiles
+
+Control which tools are exposed using the `RECLAIM_TOOL_PROFILE` environment variable:
+
+| Profile | Tools | Description |
+|---------|-------|-------------|
+| `minimal` | 20 | Core tasks + habits basics |
+| `standard` | 32 | Core productivity (no niche tools) |
+| `full` | 42 | All tools (default) |
+
+```bash
+# Use minimal profile
+export RECLAIM_TOOL_PROFILE=minimal
+
+# Or with Docker
+docker run -e RECLAIM_API_KEY="your_key" -e RECLAIM_TOOL_PROFILE=minimal \
+    universalamateur/reclaim-mcp-server
+```
+
+**Minimal Profile (20 tools)**: Core task and habit management:
+- Tasks: list, create, update, delete, complete, get
+- Habits: list, create, update, delete, mark done, skip
+- Events: list, list personal, get
+- Analytics: get user analytics
+- System: health check, verify connection
+
+**Standard Profile (32 tools)**: Adds workflow tools:
+- Task workflow: add time, start/stop, prioritize, restart
+- Habit workflow: enable/disable
+- Focus management: settings, lock/unlock, reschedule
+- Analytics: focus insights
+
+**Full Profile (42 tools)**: Adds advanced tools:
+- Event management: pin/unpin, RSVP, move
+- Habit advanced: lock/unlock instances, start/stop sessions, convert from event
 
 ## Available Tools
 
@@ -198,44 +253,29 @@ poetry run fastmcp inspect src/reclaim_mcp/server.py
 
 ## Design Principles
 
-1. **KISS** - Keep It Simple, Stupid
-2. **GitLab Python Standards** - Poetry, Black, mypy, pytest
-3. **MCP Best Practices** - LLM-readable errors, Context logging, caching
-4. **Incremental Releases** - MVP first, features later
+1. **[KISS](https://en.wikipedia.org/wiki/KISS_principle)** - Keep It Simple, Stupid
+2. **[GitLab Python Standards](https://docs.gitlab.com/ee/development/python_guide/)** - Poetry, Black, mypy, pytest
+3. **[MCP Best Practices](https://modelcontextprotocol.io/docs/concepts/tools)** - LLM-readable errors, Context logging, caching
+4. **[Semantic Versioning](https://semver.org/)** - Incremental releases, MVP first
 
-## Documentation
+## Support
 
-See `docs/` folder:
+Need help or found a bug? [Open an issue](https://gitlab.com/universalamateur1/reclaim-mcp-server/-/issues/new?issuable_template=Bug) in the repository.
 
-- `API.md` - Reclaim API reference and key findings
-- `reclaim-api-0.1.yml` - Official OpenAPI spec (29k lines)
-- `PLAN.md` - Implementation plan
-- `build-spec.md` - Technical specification
-- `research.md` - Landscape analysis
-- `best_practices_developing_MCP_servers_fastmcp.md` - MCP best practices guide
+**Note**: Support is provided on a best-effort basis. This is an unofficial community project.
 
-## Roadmap
+## Contributing
 
-| Version | Features | Status |
-|---------|----------|--------|
-| v0.1.0 | Task CRUD, completion, time tracking | ✅ Released |
-| v0.1.1 | Fixed time tracking, added get_task, list_completed_tasks | ✅ Released |
-| v0.2.0 | Calendar events (list, get) | ✅ Released |
-| v0.3.0 | Smart Habits (7 tools) | ✅ Released |
-| v0.4.0 | Extended Habits (14 tools total) | ✅ Released |
-| v0.5.0 | Best practices + PyPI readiness | ✅ Released |
-| v0.6.0 | Task planner tools + Event planner tools | ✅ Released |
-| v0.7.0 | Analytics (4 tools) + Focus Time (5 tools) | ✅ Released |
-| v0.7.1 | Bug fixes, ToolError refactor, remove team analytics | ✅ Released |
-| v0.7.2 | Centralized Pydantic validation + error handling | ✅ Released |
-| v0.7.3 | Task validation, list_personal_events fix, verify_connection | ✅ Released |
-| v0.7.4 | Fix set_event_rsvp, move_event, get_user_analytics | ✅ Released |
-| v0.7.5 | CRIT-001 validation fix, OPP-001 dedupe helper | ✅ Released |
-| v0.8.0 | Tool profiles, CI release pipeline, PyPI distribution | 🚧 Planned |
+Contributions are welcome! See [CONTRIBUTING.md](https://gitlab.com/universalamateur1/reclaim-mcp-server/-/blob/main/CONTRIBUTING.md) for guidelines on:
+
+- Reporting bugs and suggesting features
+- Development setup
+- Code style and testing
+- Merge request process
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](https://gitlab.com/universalamateur1/reclaim-mcp-server/-/blob/main/LICENSE)
 
 ## Author
 

@@ -1,5 +1,7 @@
 """Configuration settings for the Reclaim.ai MCP server."""
 
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,6 +12,7 @@ class Settings(BaseSettings):
 
     api_key: str
     base_url: str = "https://api.app.reclaim.ai"
+    tool_profile: Literal["minimal", "standard", "full"] = "full"
 
 
 def get_settings() -> Settings:
