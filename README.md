@@ -11,12 +11,12 @@ A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai
 
 | Feature | Status |
 |---------|--------|
-| Task Management | ✅ Complete (13 tools) |
+| Task Management | ✅ Complete (12 tools) |
 | Calendar Events | ✅ Complete (7 tools) |
 | Smart Habits | ✅ Complete (14 tools) |
 | Analytics | ✅ Complete (2 tools) |
 | Focus Time | ✅ Complete (5 tools) |
-| Utility | ✅ Complete (1 tool) |
+| Utility | ✅ Complete (2 tools) |
 
 ## Installation
 
@@ -91,7 +91,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ## Available Tools
 
-### Tasks (13 tools) ✅
+### Tasks (12 tools) ✅
 
 | Tool | Description |
 |------|-------------|
@@ -107,7 +107,6 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `stop_task` | Stop working on task |
 | `prioritize_task` | Elevate task priority |
 | `restart_task` | Restart a completed task |
-| `health_check` | Server health check |
 
 ### Calendar (7 tools) ✅
 
@@ -156,6 +155,13 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `lock_focus_block` | Lock focus block to prevent rescheduling |
 | `unlock_focus_block` | Unlock focus block |
 | `reschedule_focus_block` | Move focus block to new time |
+
+### Utility (2 tools) ✅
+
+| Tool | Description |
+|------|-------------|
+| `health_check` | Server health check with version info |
+| `verify_connection` | Verify API connection by fetching current user |
 
 ## MCP Best Practices
 
@@ -221,6 +227,11 @@ See `docs/` folder:
 | v0.6.0 | Task planner tools + Event planner tools | ✅ Released |
 | v0.7.0 | Analytics (4 tools) + Focus Time (5 tools) | ✅ Released |
 | v0.7.1 | Bug fixes, ToolError refactor, remove team analytics | ✅ Released |
+| v0.7.2 | Centralized Pydantic validation + error handling | ✅ Released |
+| v0.7.3 | Task validation, list_personal_events fix, verify_connection | ✅ Released |
+| v0.7.4 | Fix set_event_rsvp, move_event, get_user_analytics | ✅ Released |
+| v0.7.5 | CRIT-001 validation fix, OPP-001 dedupe helper | ✅ Released |
+| v0.8.0 | Tool profiles, CI release pipeline, PyPI distribution | 🚧 Planned |
 
 ## License
 

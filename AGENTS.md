@@ -2,17 +2,17 @@
 
 This is a Python MCP (Model Context Protocol) server for Reclaim.ai integration, built with FastMCP.
 
-**Current Version**: v0.7.4 (42 tools)
+**Current Version**: v0.7.5 (42 tools)
 
 ## Purpose
 
 Provides MCP tools for AI assistants to interact with Reclaim.ai's API, enabling:
-- Task management (13 tools)
+- Task management (12 tools)
 - Calendar events (7 tools)
 - Smart habits (14 tools)
 - Analytics (2 tools)
 - Focus time (5 tools)
-- Utility (1 tool)
+- Utility (2 tools)
 
 ## Directory Structure
 
@@ -26,7 +26,7 @@ src/reclaim_mcp/
 ├── exceptions.py         # Custom exceptions
 ├── models.py             # Pydantic models for data validation
 └── tools/
-    ├── tasks.py          # Task management (13 tools)
+    ├── tasks.py          # Task management (12 tools)
     ├── events.py         # Calendar events (7 tools)
     ├── habits.py         # Smart habits (14 tools)
     ├── analytics.py      # Analytics (2 tools)
