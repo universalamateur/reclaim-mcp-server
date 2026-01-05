@@ -524,12 +524,14 @@ class TaskListParams(BaseModel):
 
 
 class AnalyticsMetric(str, Enum):
-    """Valid metric names for user analytics."""
+    """Valid metric names for user analytics.
+
+    Note: HOURS_DEFENDED and FOCUS_WORK_BALANCE were removed in v0.8.0
+    because the Reclaim.ai V3 API returns 400 Bad Request for these metrics.
+    """
 
     DURATION_BY_CATEGORY = "DURATION_BY_CATEGORY"
     DURATION_BY_DATE_BY_CATEGORY = "DURATION_BY_DATE_BY_CATEGORY"
-    HOURS_DEFENDED = "HOURS_DEFENDED"
-    FOCUS_WORK_BALANCE = "FOCUS_WORK_BALANCE"
 
 
 class UserAnalyticsRequest(BaseModel):

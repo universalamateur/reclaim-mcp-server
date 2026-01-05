@@ -282,6 +282,8 @@ async def delete_habit(lineage_id: int) -> bool:
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return True
+    except NotFoundError:
+        raise ToolError(f"Habit {validated.lineage_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:
@@ -528,6 +530,8 @@ async def disable_habit(lineage_id: int) -> bool:
         invalidate_cache("list_habits")
         invalidate_cache("get_habit")
         return True
+    except NotFoundError:
+        raise ToolError(f"Habit {validated.lineage_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:

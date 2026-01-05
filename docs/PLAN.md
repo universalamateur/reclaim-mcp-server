@@ -1,6 +1,6 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: v0.8.0 - 42 Tools (configurable via profiles)
+**Status**: v0.8.0 - 40 Tools (configurable via profiles)
 **Date**: 2026-01-04
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
@@ -58,14 +58,54 @@ This project follows GitLab Duo-Ready project standards:
 
 ---
 
+## CI/CD Pipeline
+
+### Pipeline Stages
+
+```
+lint → test → security → build → publish → release
+```
+
+### Multi-Registry Publishing (v0.8.0+)
+
+| Registry | Purpose | Auth Method |
+|----------|---------|-------------|
+| **PyPI** | Public Python package | OIDC Trusted Publishing |
+| **TestPyPI** | Pre-release validation | OIDC Trusted Publishing |
+| **GitLab Package Registry** | Internal/enterprise | `$CI_JOB_TOKEN` (auto) |
+| **GitLab Container Registry** | Docker images | `$CI_REGISTRY_*` (auto) |
+| **DockerHub** | Public Docker images | Access token |
+
+### Key Features
+
+- **OIDC Trusted Publishing**: No PyPI API tokens needed - GitLab exchanges OIDC tokens directly
+- **Manual publish triggers**: All publish jobs require manual trigger to prevent accidental releases
+- **TestPyPI → PyPI flow**: Validate packages on TestPyPI before production release
+- **GitLab Environments**: Track deployments to `release-test`, `release`, and `docker`
+- **Container scanning**: Trivy scans for HIGH/CRITICAL vulnerabilities
+
+### Release Process
+
+1. Update version in 4 locations + `poetry lock`
+2. Update CHANGELOG.md
+3. Commit to main, create/push tag `vX.Y.Z`
+4. Manually trigger publish jobs in GitLab UI
+5. Create GitLab Release with asset links
+
+See [RELEASING.md](/RELEASING.md) for detailed instructions.
+
+---
+
 ## Project Structure
 
 ```
 reclaim-mcp-server/
 ├── .gitlab-ci.yml              # CI/CD pipeline
+├── Dockerfile                  # Multi-stage Docker build
 ├── pyproject.toml              # Poetry + tool configs
 ├── README.md                   # Usage documentation
 ├── CONTRIBUTING.md             # Contribution guidelines
+├── RELEASING.md                # Release process documentation
 ├── LICENSE                     # MIT
 ├── src/
 │   └── reclaim_mcp/
@@ -80,7 +120,7 @@ reclaim-mcp-server/
 │       └── tools/
 │           ├── __init__.py
 │           ├── tasks.py        # 12 task tools
-│           ├── events.py       # 7 event tools
+│           ├── events.py       # 5 event tools
 │           ├── habits.py       # 14 habit tools
 │           ├── focus.py        # 5 focus tools
 │           └── analytics.py    # 2 analytics tools
@@ -342,7 +382,7 @@ test:
 
 **Theme**: Distribution & Profiles
 
-- [x] Tool profiles (minimal=20, standard=32, full=42)
+- [x] Tool profiles (minimal=20, standard=32, full=40)
 - [x] Docker distribution (non-root, multi-stage build)
 - [x] Python 3.12 upgrade
 - [x] Multi-registry publishing (PyPI, DockerHub, GitLab)
@@ -394,3 +434,5 @@ test:
 | Team analytics | Plan-gated (removed in v0.7.1) |
 | `restart_task` | API returns ARCHIVED status - unclear behavior |
 | Multi-platform | Docker builds single-arch only until v0.10.0 |
+| `pin_event` / `unpin_event` | Upstream API returns HTTP 500 (removed in v0.8.0) |
+| `HOURS_DEFENDED` / `FOCUS_WORK_BALANCE` | V3 API returns 400 (removed in v0.8.0) |

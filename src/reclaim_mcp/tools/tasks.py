@@ -284,6 +284,8 @@ async def delete_task(task_id: int) -> bool:
         invalidate_cache("list_tasks")
         invalidate_cache("list_completed_tasks")
         return result
+    except NotFoundError:
+        raise ToolError(f"Task {validated.task_id} not found")
     except RateLimitError as e:
         raise ToolError(str(e))
     except ReclaimError as e:

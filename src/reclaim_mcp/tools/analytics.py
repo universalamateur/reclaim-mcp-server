@@ -33,8 +33,6 @@ async def get_user_analytics(
         metric_name: The metric to retrieve. One of:
             - DURATION_BY_CATEGORY
             - DURATION_BY_DATE_BY_CATEGORY
-            - HOURS_DEFENDED
-            - FOCUS_WORK_BALANCE
 
     Returns:
         Analytics data with time breakdowns by category.

@@ -26,8 +26,8 @@ class TestProfileDefinitions:
         assert len(STANDARD_TOOLS) == 32
 
     def test_full_tools_count(self) -> None:
-        """Test full profile has 42 tools."""
-        assert len(FULL_TOOLS) == 42
+        """Test full profile has 40 tools."""
+        assert len(FULL_TOOLS) == 40
 
     def test_minimal_is_subset_of_standard(self) -> None:
         """Test minimal tools are all in standard."""
@@ -70,8 +70,6 @@ class TestProfileDefinitions:
     def test_advanced_tools_only_in_full(self) -> None:
         """Test advanced tools are only in full profile."""
         advanced_tools = {
-            "pin_event",
-            "unpin_event",
             "set_event_rsvp",
             "move_event",
             "convert_event_to_habit",
@@ -128,7 +126,7 @@ class TestIsToolEnabled:
     def test_tool_not_in_minimal(self) -> None:
         """Test tool not enabled in minimal profile."""
         assert is_tool_enabled("start_task", "minimal") is False
-        assert is_tool_enabled("pin_event", "minimal") is False
+        assert is_tool_enabled("set_event_rsvp", "minimal") is False
 
     def test_tool_in_standard(self) -> None:
         """Test tool enabled in standard profile."""
@@ -137,7 +135,7 @@ class TestIsToolEnabled:
 
     def test_tool_not_in_standard(self) -> None:
         """Test tool not enabled in standard profile."""
-        assert is_tool_enabled("pin_event", "standard") is False
+        assert is_tool_enabled("set_event_rsvp", "standard") is False
         assert is_tool_enabled("convert_event_to_habit", "standard") is False
 
     def test_all_tools_in_full(self) -> None:
@@ -147,7 +145,7 @@ class TestIsToolEnabled:
 
     def test_default_profile_is_full(self) -> None:
         """Test default profile enables all tools."""
-        assert is_tool_enabled("pin_event") is True
+        assert is_tool_enabled("set_event_rsvp") is True
         assert is_tool_enabled("convert_event_to_habit") is True
 
 
@@ -160,7 +158,7 @@ class TestGetProfileInfo:
         assert info == {
             "minimal": 20,
             "standard": 32,
-            "full": 42,
+            "full": 40,
         }
 
 
@@ -176,8 +174,8 @@ class TestServerToolDecorator:
         assert is_tool_enabled("health_check", "minimal") is True
         assert is_tool_enabled("start_task", "minimal") is False
         assert is_tool_enabled("start_task", "standard") is True
-        assert is_tool_enabled("pin_event", "standard") is False
-        assert is_tool_enabled("pin_event", "full") is True
+        assert is_tool_enabled("set_event_rsvp", "standard") is False
+        assert is_tool_enabled("set_event_rsvp", "full") is True
 
     def test_profile_env_var_defaults_to_full(self) -> None:
         """Test that missing RECLAIM_TOOL_PROFILE defaults to full."""
@@ -186,4 +184,4 @@ class TestServerToolDecorator:
             # Re-check that get_enabled_tools with default returns full
             from reclaim_mcp.profiles import get_enabled_tools
 
-            assert len(get_enabled_tools()) == 42
+            assert len(get_enabled_tools()) == 40

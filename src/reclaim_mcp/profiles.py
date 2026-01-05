@@ -3,7 +3,7 @@
 Profiles allow users to limit which tools are exposed based on their needs:
 - minimal: Core tasks + habits basics (20 tools)
 - standard: Core productivity without niche tools (32 tools)
-- full: All tools (42 tools, default)
+- full: All tools (40 tools, default)
 """
 
 from typing import Literal
@@ -60,11 +60,9 @@ STANDARD_TOOLS: set[str] = MINIMAL_TOOLS | {
     "get_focus_insights",
 }
 
-# Full profile: All tools (42 tools)
+# Full profile: All tools (40 tools)
 FULL_TOOLS: set[str] = STANDARD_TOOLS | {
-    # Events advanced (4)
-    "pin_event",
-    "unpin_event",
+    # Events advanced (2)
     "set_event_rsvp",
     "move_event",
     # Habits advanced (5)

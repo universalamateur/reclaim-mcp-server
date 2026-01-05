@@ -7,6 +7,7 @@
 # - TestPyPI (Python)
 # - GitLab Container Registry (Docker)
 # - DockerHub (Docker)
+# - GitLab Releases (with links to all registries)
 # =============================================================================
 
 default:
@@ -20,6 +21,7 @@ stages:
   - security
   - build
   - publish
+  - release
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
@@ -279,3 +281,61 @@ publish-dockerhub:
   rules:
     - if: $CI_COMMIT_TAG
       when: manual
+
+# =============================================================================
+# RELEASE STAGE - GitLab Release
+# =============================================================================
+
+# Create GitLab Release with links to all registries
+create-release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/cli:latest
+  needs:
+    - job: build-package
+      artifacts: true
+    - job: publish-gitlab-package
+    - job: publish-pypi
+    - job: publish-gitlab-container
+    - job: publish-dockerhub
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+  variables:
+    # Package version without 'v' prefix for PyPI URLs
+    PACKAGE_VERSION: "${CI_COMMIT_TAG#v}"
+  script:
+    - |
+      echo "Creating GitLab Release for $CI_COMMIT_TAG..."
+
+      # Create release with changelog and asset links
+      glab release create "$CI_COMMIT_TAG" \
+        --name "Release $CI_COMMIT_TAG" \
+        --notes-file CHANGELOG.md \
+        --assets-links "[
+          {
+            \"name\": \"PyPI Package\",
+            \"url\": \"https://pypi.org/project/reclaim-mcp-server/${PACKAGE_VERSION}/\",
+            \"link_type\": \"package\"
+          },
+          {
+            \"name\": \"GitLab Package Registry\",
+            \"url\": \"${CI_PROJECT_URL}/-/packages\",
+            \"link_type\": \"package\"
+          },
+          {
+            \"name\": \"DockerHub Image\",
+            \"url\": \"https://hub.docker.com/r/${DOCKERHUB_USERNAME}/reclaim-mcp-server/tags?name=${CI_COMMIT_TAG}\",
+            \"link_type\": \"image\"
+          },
+          {
+            \"name\": \"GitLab Container Registry\",
+            \"url\": \"${CI_PROJECT_URL}/container_registry\",
+            \"link_type\": \"image\"
+          }
+        ]" \
+        dist/*
+
+      echo "Release created: ${CI_PROJECT_URL}/-/releases/${CI_COMMIT_TAG}"
+  environment:
+    name: release
+    url: ${CI_PROJECT_URL}/-/releases/${CI_COMMIT_TAG}

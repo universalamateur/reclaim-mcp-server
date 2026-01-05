@@ -113,3 +113,21 @@ Use conventional commit format:
 - `chore:` Maintenance tasks
 
 Example: `feat: add task priority support`
+
+## Release Process
+
+See [RELEASING.md](RELEASING.md) for detailed release instructions.
+
+### Quick Overview
+
+Releases are managed through GitLab CI/CD with multi-registry publishing:
+
+| Registry | Purpose | Auth |
+|----------|---------|------|
+| PyPI | Public Python package | OIDC Trusted Publishing |
+| TestPyPI | Pre-release validation | OIDC Trusted Publishing |
+| GitLab Package Registry | Internal/enterprise | `$CI_JOB_TOKEN` |
+| GitLab Container Registry | Docker images | `$CI_REGISTRY_*` |
+| DockerHub | Public Docker images | Access token |
+
+All publish jobs require **manual trigger** to prevent accidental releases.

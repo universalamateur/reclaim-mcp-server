@@ -74,7 +74,8 @@ class TestReclaimClient:
 
     @pytest.mark.asyncio
     async def test_delete_request_not_found(self, settings: Settings, monkeypatch: MonkeyPatch) -> None:
-        """Test DELETE request returns False on 404."""
+        """Test DELETE request raises NotFoundError on 404."""
+        from reclaim_mcp.exceptions import NotFoundError
 
         async def mock_delete(*args, **kwargs):
             return _make_response(404)
@@ -82,9 +83,8 @@ class TestReclaimClient:
         monkeypatch.setattr("httpx.AsyncClient.delete", mock_delete)
 
         client = ReclaimClient(settings)
-        result = await client.delete("/api/tasks/99999")
-
-        assert result is False
+        with pytest.raises(NotFoundError):
+            await client.delete("/api/tasks/99999")
 
     @pytest.mark.asyncio
     async def test_get_request_rate_limit(self, settings: Settings, monkeypatch: MonkeyPatch) -> None:

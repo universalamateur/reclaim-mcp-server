@@ -207,7 +207,7 @@ async def delete_task(ctx: Context, task_id: int) -> bool:
         task_id: The task ID to delete
 
     Returns:
-        True if deleted successfully, False otherwise
+        True if deleted successfully
     """
     await ctx.info(f"Deleting task: id={task_id}")
     return await tasks.delete_task(task_id=task_id)
@@ -371,44 +371,6 @@ async def get_event(
         event_id=event_id,
         thin=thin,
     )
-
-
-@tool
-async def pin_event(
-    ctx: Context,
-    calendar_id: int,
-    event_id: str,
-) -> dict:
-    """Pin an event to lock it at its current time (prevents rescheduling).
-
-    Args:
-        calendar_id: The calendar ID containing the event
-        event_id: The event ID to pin
-
-    Returns:
-        Planner action result with updated event state.
-    """
-    await ctx.info(f"Pinning event: calendar_id={calendar_id}, event_id={event_id}")
-    return await events.pin_event(calendar_id=calendar_id, event_id=event_id)
-
-
-@tool
-async def unpin_event(
-    ctx: Context,
-    calendar_id: int,
-    event_id: str,
-) -> dict:
-    """Unpin an event to allow it to be rescheduled by the AI.
-
-    Args:
-        calendar_id: The calendar ID containing the event
-        event_id: The event ID to unpin
-
-    Returns:
-        Planner action result with updated event state.
-    """
-    await ctx.info(f"Unpinning event: calendar_id={calendar_id}, event_id={event_id}")
-    return await events.unpin_event(calendar_id=calendar_id, event_id=event_id)
 
 
 @tool
@@ -796,8 +758,6 @@ async def get_user_analytics(
         metric_name: The metric to retrieve. One of:
             - DURATION_BY_CATEGORY
             - DURATION_BY_DATE_BY_CATEGORY
-            - HOURS_DEFENDED
-            - FOCUS_WORK_BALANCE
 
     Returns:
         Analytics data with time breakdowns by category.

@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tool Profiles**: Control which tools are exposed via `RECLAIM_TOOL_PROFILE` environment variable
   - `minimal`: 20 core tools (tasks, habits basics, events)
   - `standard`: 32 tools (adds workflow and focus management)
-  - `full`: 42 tools (all tools, default)
+  - `full`: 40 tools (all tools, default)
 - **Docker Distribution**: Multi-stage build with non-root user
   - Available at `universalamateur/reclaim-mcp-server`
 - **Multi-Registry Publishing**: GitLab CI pipeline for PyPI, TestPyPI, GitLab Package Registry, GitLab Container Registry, and DockerHub
@@ -27,7 +27,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom `@tool` decorator in server.py for profile-based registration
 - Updated documentation for PyPI and Docker installation options
 
-**Total tools: 42** (unchanged, but configurable via profiles)
+### Fixed
+
+- **MED-001/MED-002**: `delete_habit`, `disable_habit`, and `delete_task` now properly
+  reject non-existent resource IDs with clear error messages instead of silently succeeding.
+  - `client.delete()` now raises `NotFoundError` for 404 responses (consistent with other HTTP methods)
+  - Added `NotFoundError` handling in all delete/disable operations
+
+### Removed
+
+- **`pin_event` / `unpin_event` tools**: Upstream Reclaim.ai API returns HTTP 500
+  for these endpoints. Tools removed until Reclaim fixes the API.
+- **`HOURS_DEFENDED` / `FOCUS_WORK_BALANCE` metrics**: V3 Analytics API returns
+  400 Bad Request for these metric names. Use `DURATION_BY_CATEGORY` or
+  `DURATION_BY_DATE_BY_CATEGORY` instead.
+
+**Total tools: 40** (reduced from 42 - removed broken upstream features)
 
 ## [0.7.5] - 2026-01-03
 

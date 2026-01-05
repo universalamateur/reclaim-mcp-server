@@ -1,26 +1,88 @@
 instructions:
-  - name: Python Code Quality
+  - name: Core Principles (KISS & Maintainability)
     fileFilters:
       - "**/*.py"
-      - "!tests/**/*.py"
+      - "**/*.md"
+      - "**/*.yaml"
+      - "**/*.yml"
+    instructions: |
+      1. KISS Principle: Verify the change is the simplest solution to the problem
+      2. Check for over-engineering - reject unnecessary abstractions or premature optimization
+      3. Ensure code is understandable without extensive comments
+      4. Verify changes are minimal - only what's needed to solve the problem
+      5. Flag any complexity that could be simplified
+
+  - name: Python Code Quality
+    fileFilters:
+      - "src/**/*.py"
       - "!**/__pycache__/**"
     instructions: |
       1. Verify all functions have type hints for parameters and return values
       2. Check for Google-style docstrings on public functions
-      3. Ensure proper error handling with specific exception types
-      4. Verify async functions use httpx.AsyncClient correctly
+      3. Ensure proper error handling - raise ToolError for LLM-friendly errors
+      4. Verify async functions use httpx.AsyncClient correctly (one instance per request)
       5. Check for potential security issues (hardcoded secrets, injection vulnerabilities)
       6. Ensure no unused imports or variables
+      7. Verify Black (120 chars) and isort formatting compliance
+
+  - name: Pydantic Validation Pattern
+    fileFilters:
+      - "src/reclaim_mcp/tools/**/*.py"
+      - "src/reclaim_mcp/models.py"
+    instructions: |
+      1. CRITICAL: All input validation MUST use Pydantic models in models.py
+      2. Reject any inline validation in tool functions - it belongs in models.py
+      3. Verify Pydantic validators use @field_validator or @model_validator decorators
+      4. Check that tool functions instantiate Pydantic models for validation
+      5. Ensure validation error messages are clear and actionable
+      6. Verify enums are defined in models.py, not inline
+
+  - name: MCP Tool Implementation
+    fileFilters:
+      - "src/reclaim_mcp/tools/**/*.py"
+      - "src/reclaim_mcp/server.py"
+    instructions: |
+      1. Verify @tool decorator includes correct profile assignment (minimal/standard/full)
+      2. Check that read operations use @ttl_cache decorator
+      3. Verify mutations call invalidate_cache() after success
+      4. Ensure tool docstrings are clear - they become LLM tool descriptions
+      5. Check error handling raises ToolError from fastmcp.exceptions
+      6. Verify API endpoint matches docs/API.md mapping
+
+  - name: API Format Compliance
+    fileFilters:
+      - "src/reclaim_mcp/**/*.py"
+    instructions: |
+      1. Verify idealTime uses HH:MM:SS format (with seconds)
+      2. Check date fields use YYYY-MM-DD format
+      3. Verify datetime fields use RFC3339 format
+      4. Ensure RSVP values use PascalCase (Accepted, Declined, TentativelyAccepted)
+      5. Check defenseAggression uses valid enum: DEFAULT, NONE, LOW, MEDIUM, HIGH, MAX
+      6. Verify timePolicyType uses valid enum: WORK, PERSONAL, MEETING, ONE_OFF
 
   - name: Test Coverage
     fileFilters:
       - "tests/**/*.py"
     instructions: |
       1. Verify tests cover both success and error paths
-      2. Check that external dependencies are properly mocked
-      3. Ensure async tests use pytest.mark.asyncio
+      2. Check that external API calls are properly mocked
+      3. Ensure async tests use pytest.mark.asyncio or pytest-asyncio auto mode
       4. Verify test fixtures are used appropriately
       5. Check for meaningful assertions, not just "does not raise"
+      6. Ensure Pydantic validation is tested (valid and invalid inputs)
+      7. Target 80%+ code coverage for new code
+
+  - name: Version Management
+    fileFilters:
+      - "pyproject.toml"
+      - "src/reclaim_mcp/__init__.py"
+      - "tests/test_server.py"
+    instructions: |
+      1. CRITICAL: Version must be synchronized across ALL 4 locations
+      2. Check pyproject.toml [project] version matches [tool.poetry] version
+      3. Verify src/reclaim_mcp/__init__.py __version__ matches
+      4. Ensure tests/test_server.py version assertion is updated
+      5. If pyproject.toml changed, verify poetry.lock was regenerated
 
   - name: Configuration Files
     fileFilters:
@@ -28,11 +90,14 @@ instructions:
       - "*.yaml"
       - "*.yml"
       - "*.json"
+      - ".gitlab-ci.yml"
+      - "!poetry.lock"
     instructions: |
       1. Verify no secrets or credentials are committed
       2. Check for proper formatting and valid syntax
-      3. Ensure version numbers are updated if needed
-      4. Verify dependencies are pinned appropriately
+      3. Ensure dependencies are pinned appropriately
+      4. For CI changes, verify pipeline stages are correct
+      5. Check environment variable names use RECLAIM_ prefix
 
   - name: Documentation
     fileFilters:
@@ -40,6 +105,17 @@ instructions:
       - "!CHANGELOG.md"
     instructions: |
       1. Check for accurate and up-to-date information
-      2. Verify code examples are correct and runnable
+      2. Verify code examples are correct and match current implementation
       3. Ensure links are valid and not broken
-      4. Check for proper markdown formatting
+      4. Check version references match current version
+      5. Verify API quirks and enum values are accurate
+
+  - name: Changelog Updates
+    fileFilters:
+      - "CHANGELOG.md"
+    instructions: |
+      1. Verify entry is under correct version heading
+      2. Check entry follows Keep a Changelog format
+      3. Ensure breaking changes are clearly marked
+      4. Verify linked issues/MRs are correct
+      5. Check date format is consistent (YYYY-MM-DD)

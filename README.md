@@ -10,7 +10,7 @@ A Python MCP (Model Context Protocol) server for [Reclaim.ai](https://reclaim.ai
 ## Current Status
 
 **Version**: v0.8.0
-**Status**: Production-ready with 42 tools (configurable via profiles)
+**Status**: Production-ready with 40 tools (configurable via profiles)
 
 | Feature | Status |
 |---------|--------|
@@ -116,7 +116,7 @@ Control which tools are exposed using the `RECLAIM_TOOL_PROFILE` environment var
 |---------|-------|-------------|
 | `minimal` | 20 | Core tasks + habits basics |
 | `standard` | 32 | Core productivity (no niche tools) |
-| `full` | 42 | All tools (default) |
+| `full` | 40 | All tools (default) |
 
 ```bash
 # Use minimal profile
@@ -140,8 +140,8 @@ docker run -e RECLAIM_API_KEY="your_key" -e RECLAIM_TOOL_PROFILE=minimal \
 - Focus management: settings, lock/unlock, reschedule
 - Analytics: focus insights
 
-**Full Profile (42 tools)**: Adds advanced tools:
-- Event management: pin/unpin, RSVP, move
+**Full Profile (40 tools)**: Adds advanced tools:
+- Event management: RSVP, move
 - Habit advanced: lock/unlock instances, start/stop sessions, convert from event
 
 ## Available Tools
@@ -163,15 +163,13 @@ docker run -e RECLAIM_API_KEY="your_key" -e RECLAIM_TOOL_PROFILE=minimal \
 | `prioritize_task` | Elevate task priority |
 | `restart_task` | Restart a completed task |
 
-### Calendar (7 tools) ✅
+### Calendar (5 tools) ✅
 
 | Tool | Description |
 |------|-------------|
 | `list_events` | List calendar events within a time range |
 | `list_personal_events` | List Reclaim-managed events (tasks, habits, focus) |
 | `get_event` | Get single event by calendar ID and event ID |
-| `pin_event` | Lock event at current time |
-| `unpin_event` | Allow event to be rescheduled |
 | `set_event_rsvp` | Set RSVP status for event |
 | `move_event` | Reschedule event to new time |
 

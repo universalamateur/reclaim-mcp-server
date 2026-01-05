@@ -152,17 +152,18 @@ This properly transitions status to ARCHIVED and sets the `finished` timestamp.
 | `prioritize_task` | POST /api/planner/prioritize/task/{id} |
 | `restart_task` | POST /api/planner/restart/task/{id} |
 
-### Calendar Tools (v0.2.0 - v0.7.4)
+### Calendar Tools (v0.2.0 - v0.8.0)
 
 | MCP Tool | API Endpoint(s) |
 |----------|-----------------|
 | `list_events` | GET /api/events?start=X&end=Y |
 | `list_personal_events` | GET /api/events/personal |
 | `get_event` | GET /api/events/{calendarId}/{eventId} |
-| `pin_event` | POST /api/planner/event/{calendarId}/{eventId}/pin |
-| `unpin_event` | POST /api/planner/event/{calendarId}/{eventId}/unpin |
 | `set_event_rsvp` | PUT /api/planner/event/rsvp/{calendarId}/{eventId} |
 | `move_event` | POST /api/planner/event/move/{eventId}?start=X&end=Y |
+
+**v0.8.0 Changes**:
+- `pin_event` / `unpin_event`: **REMOVED** - Upstream API returns HTTP 500 for all requests.
 
 **v0.7.4 Breaking Changes**:
 - `set_event_rsvp`: Now uses PUT method (was POST), body field is `responseStatus` (was `rsvpStatus`),
@@ -307,7 +308,9 @@ DefenseAggression:
 as they require a Team plan and caused confusion for users on other plans.
 
 **v0.7.4 Breaking Change**: `get_user_analytics` now requires a single `metric_name` parameter (was optional list).
-Valid metric names: `DURATION_BY_CATEGORY`, `DURATION_BY_DATE_BY_CATEGORY`, `HOURS_DEFENDED`, `FOCUS_WORK_BALANCE`
+Valid metric names: `DURATION_BY_CATEGORY`, `DURATION_BY_DATE_BY_CATEGORY`
+
+**v0.8.0 Note**: `HOURS_DEFENDED` and `FOCUS_WORK_BALANCE` metrics were removed as the V3 API returns 400 Bad Request for these.
 
 **Known Limitations**:
 - `get_focus_insights`: Historical date ranges may return HTTP 500 errors.

@@ -160,16 +160,18 @@ class ReclaimClient:
     async def delete(self, endpoint: str) -> bool:
         """Make a DELETE request to the API.
 
-        Note: DELETE returns bool for backwards compatibility.
-        Errors are raised as exceptions.
+        Returns:
+            True if deleted successfully (200, 204).
+
+        Raises:
+            NotFoundError: If resource not found (404).
+            RateLimitError: If rate limit exceeded (429).
+            APIError: For other errors.
         """
         async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT) as client:
             response = await client.delete(
                 f"{self.base_url}{endpoint}",
                 headers=self.headers,
             )
-            # For DELETE, 404 might be acceptable (resource already gone)
-            if response.status_code == 404:
-                return False
             self._handle_response_errors(response, endpoint)
             return response.status_code in (200, 204)
