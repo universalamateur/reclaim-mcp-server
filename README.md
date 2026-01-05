@@ -127,6 +127,23 @@ docker run -e RECLAIM_API_KEY="your_key" -e RECLAIM_TOOL_PROFILE=minimal \
     universalamateur/reclaim-mcp-server
 ```
 
+**MCP JSON config with profile:**
+
+```json
+{
+  "mcpServers": {
+    "reclaim": {
+      "command": "uvx",
+      "args": ["reclaim-mcp-server"],
+      "env": {
+        "RECLAIM_API_KEY": "your_key_here",
+        "RECLAIM_TOOL_PROFILE": "standard"
+      }
+    }
+  }
+}
+```
+
 **Minimal Profile (20 tools)**: Core task and habit management:
 - Tasks: list, create, update, delete, complete, get
 - Habits: list, create, update, delete, mark done, skip
