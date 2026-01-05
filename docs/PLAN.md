@@ -378,7 +378,7 @@ test:
 
 ## Roadmap
 
-### v0.8.0 (Current) ✅
+### v0.8.0 (Released 2026-01-05) ✅
 
 **Theme**: Distribution & Profiles
 
@@ -390,9 +390,50 @@ test:
 - [x] Trivy container scanning
 - [x] CI workflow optimization (`$CI_COMMIT_REF_PROTECTED`)
 
-### v0.9.0 (Next)
+### v0.8.1 (Next - Patch Release)
+
+**Theme**: Docker ARM64 + CI Verification
+
+**Based on**: QA Report RECOMMENDATIONS-v0.8.1.md (94% pass rate for v0.8.0)
+
+| ID | Priority | Issue | Decision |
+|----|----------|-------|----------|
+| REC-001 | P0 | Multi-platform Docker (ARM64) | ✅ Include |
+| REC-002 | P1 | Verify GitLab Registry access | ✅ Include |
+| REC-003 | P2 | Update pytest-asyncio (deprecation) | ❌ Defer |
+| REC-004 | P2 | Docker pull verification in CI | ✅ Include |
+
+**Implementation**:
+
+1. **REC-001: Multi-Platform Docker Build**
+   - Update `build-docker` job to use `docker buildx`
+   - Build for `linux/amd64,linux/arm64`
+   - **Open question**: `--output type=docker,dest=image.tar` may not support multi-platform in single tarball
+   - Options: (a) build separately, (b) push directly with `--push`, (c) matrix build
+
+2. **REC-002: Verify GitLab Container Registry**
+   - Manual test: `docker pull registry.gitlab.com/universalamateur1/reclaim-mcp-server:v0.8.0`
+   - If fails: Check Settings → General → Visibility → Container Registry
+
+3. **REC-004: Docker Pull Verification Job**
+   - Add `verify-docker-pull` job to release stage
+   - **Open question**: Manual or automatic after publish jobs?
+
+**Files to modify**:
+- `.gitlab-ci.yml` - buildx + verify job
+- `pyproject.toml` - version bump
+- `src/reclaim_mcp/__init__.py` - version bump
+- `CHANGELOG.md` - release notes
+
+### v0.9.0 (Planned)
 
 **Theme**: Discoverability via MCP Registries
+
+| ID | Description | Decision |
+|----|-------------|----------|
+| ROAD-001 | Publish to MCP Registry (registry.modelcontextprotocol.io) | ✅ Include |
+| ROAD-002 | Add Smithery Registry support (smithery.ai) | ✅ Include |
+| ROAD-003 | Document v0.8.0 as first public PyPI release | ✅ Include |
 
 **Prerequisites** (one-time setup):
 - GitHub mirror: `github.com/universalamateur/reclaim-mcp-server`
@@ -406,24 +447,23 @@ test:
 - Update `Dockerfile` - MCP namespace labels
 - Update `README.md` - MCP marker + badges
 
-**Registries**:
-- Smithery.ai (https://smithery.ai/server/reclaim-mcp-server)
-- MCP Registry (https://registry.modelcontextprotocol.io/)
-- Glama (auto-syncs from MCP Registry)
+### v1.0.0 (Future)
 
-### v0.10.0 (Planned)
+**Theme**: Production Hardening
 
-**Theme**: Cross-Architecture Support
+| ID | Description | Decision |
+|----|-------------|----------|
+| ROAD-004 | Integration tests against live Reclaim API | TBD |
+| ROAD-005 | Health check enhancement (verify API connectivity) | TBD |
+| ROAD-006 | Rate limit retry with exponential backoff | TBD |
 
-- Multi-platform Docker builds (linux/amd64 + linux/arm64)
-- buildx setup in CI
-- Manifest list for multi-arch support
+### v1.x+ (Future)
 
-### v1.0.0+ (Future)
-
-- MCP Resources (`reclaim://today`, `reclaim://tasks/active`)
-- Additional Reclaim API coverage
-- OAuth flow for API key setup
+| ID | Description |
+|----|-------------|
+| ROAD-007 | MCP Resources support (read-only data access) |
+| ROAD-008 | MCP Prompts support (daily-planning, weekly-review) |
+| ROAD-009 | Webhook/notification support (depends on upstream API) |
 
 ---
 
