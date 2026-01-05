@@ -1,10 +1,6 @@
 # Reclaim.ai MCP Server _(UNOFFICIAL)_
 
-[![PyPI](https://img.shields.io/pypi/v/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/)
-[![Downloads](https://img.shields.io/pypi/dm/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/)
-[![Python](https://img.shields.io/pypi/pyversions/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/)
-[![CI](https://gitlab.com/universalamateur1/reclaim-mcp-server/badges/main/pipeline.svg)](https://gitlab.com/universalamateur1/reclaim-mcp-server/-/pipelines)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI](https://img.shields.io/pypi/v/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![Downloads](https://img.shields.io/pypi/dm/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![Python](https://img.shields.io/pypi/pyversions/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![CI](https://gitlab.com/universalamateur1/reclaim-mcp-server/badges/main/pipeline.svg)](https://gitlab.com/universalamateur1/reclaim-mcp-server/-/pipelines) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **UNOFFICIAL** – Not affiliated with Reclaim.ai. Uses their public API , use at your own risk.
 
