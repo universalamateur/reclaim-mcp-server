@@ -13,6 +13,7 @@ Releases are published to multiple registries via GitLab CI/CD:
 | **GitLab Package Registry** | Project → Packages | `$CI_JOB_TOKEN` (automatic) |
 | **GitLab Container Registry** | Project → Container Registry | `$CI_REGISTRY_*` (automatic) |
 | **DockerHub** | https://hub.docker.com/r/universalamateur/reclaim-mcp-server | Access token |
+| **GitHub** (mirror) | https://github.com/universalamateur/reclaim-mcp-server | GitLab Push Mirroring |
 
 ## Pipeline Architecture
 
