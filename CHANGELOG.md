@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - ARM64 (Apple Silicon) compatibility for Docker images
+- Docker buildx TLS compatibility in GitLab CI (disabled TLS for docker-container driver)
 
 **Total tools: 40** (unchanged)
 

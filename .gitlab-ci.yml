@@ -139,6 +139,9 @@ build-docker:
     - if: $CI_COMMIT_TAG
   variables:
     PLATFORMS: "linux/amd64,linux/arm64"
+    # Disable TLS for buildx docker-container driver compatibility
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: tcp://docker:2375
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker buildx create --name multiarch --driver docker-container --use
@@ -263,6 +266,9 @@ publish-dockerhub:
   needs: [test, build-package]
   variables:
     PLATFORMS: "linux/amd64,linux/arm64"
+    # Disable TLS for buildx docker-container driver compatibility
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: tcp://docker:2375
   before_script:
     - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
     - docker buildx create --name multiarch --driver docker-container --use
