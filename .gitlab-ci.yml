@@ -149,7 +149,7 @@ build-docker:
 
 # Container vulnerability scanning (free alternative to GitLab Ultimate)
 container-scan:
-  stage: security
+  stage: build
   image: aquasec/trivy:latest
   needs: [build-docker]
   rules:

@@ -192,7 +192,7 @@ poetry lock
 |------|---------------|
 | Black | 120 line length |
 | isort | Black profile |
-| flake8 | Max line 100 |
+| flake8 | Max line 120 (via .flake8) |
 | mypy | Strict mode |
 | Docstrings | Google-style |
 
@@ -201,7 +201,7 @@ poetry lock
 ```bash
 poetry run black --check src tests
 poetry run isort --check-only src tests
-poetry run flake8 src tests --max-line-length=100
+poetry run flake8 src tests
 poetry run mypy src
 ```
 
