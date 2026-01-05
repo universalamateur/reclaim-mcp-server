@@ -1,7 +1,7 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: v0.8.0 - 40 Tools (configurable via profiles)
-**Date**: 2026-01-04
+**Status**: v0.8.1 - 40 Tools (configurable via profiles)
+**Date**: 2026-01-05
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
 ---
@@ -390,40 +390,15 @@ test:
 - [x] Trivy container scanning
 - [x] CI workflow optimization (`$CI_COMMIT_REF_PROTECTED`)
 
-### v0.8.1 (Next - Patch Release)
+### v0.8.1 (Released 2026-01-05) ✅
 
 **Theme**: Docker ARM64 + CI Verification
 
-**Based on**: QA Report RECOMMENDATIONS-v0.8.1.md (94% pass rate for v0.8.0)
-
-| ID | Priority | Issue | Decision |
-|----|----------|-------|----------|
-| REC-001 | P0 | Multi-platform Docker (ARM64) | ✅ Include |
-| REC-002 | P1 | Verify GitLab Registry access | ✅ Include |
-| REC-003 | P2 | Update pytest-asyncio (deprecation) | ❌ Defer |
-| REC-004 | P2 | Docker pull verification in CI | ✅ Include |
-
-**Implementation**:
-
-1. **REC-001: Multi-Platform Docker Build**
-   - Update `build-docker` job to use `docker buildx`
-   - Build for `linux/amd64,linux/arm64`
-   - **Open question**: `--output type=docker,dest=image.tar` may not support multi-platform in single tarball
-   - Options: (a) build separately, (b) push directly with `--push`, (c) matrix build
-
-2. **REC-002: Verify GitLab Container Registry**
-   - Manual test: `docker pull registry.gitlab.com/universalamateur1/reclaim-mcp-server:v0.8.0`
-   - If fails: Check Settings → General → Visibility → Container Registry
-
-3. **REC-004: Docker Pull Verification Job**
-   - Add `verify-docker-pull` job to release stage
-   - **Open question**: Manual or automatic after publish jobs?
-
-**Files to modify**:
-- `.gitlab-ci.yml` - buildx + verify job
-- `pyproject.toml` - version bump
-- `src/reclaim_mcp/__init__.py` - version bump
-- `CHANGELOG.md` - release notes
+- [x] Multi-platform Docker builds (`linux/amd64,linux/arm64`) via `docker buildx`
+- [x] Native Apple Silicon support without Rosetta 2 emulation
+- [x] Automatic Docker pull verification in CI pipeline
+- [x] Registry caching for faster rebuilds
+- [x] Docker image upgraded to `docker:27`
 
 ### v0.9.0 (Planned)
 
@@ -473,6 +448,5 @@ test:
 |-------|-------------|
 | Team analytics | Plan-gated (removed in v0.7.1) |
 | `restart_task` | API returns ARCHIVED status - unclear behavior |
-| Multi-platform | Docker builds single-arch only until v0.10.0 |
 | `pin_event` / `unpin_event` | Upstream API returns HTTP 500 (removed in v0.8.0) |
 | `HOURS_DEFENDED` / `FOCUS_WORK_BALANCE` | V3 API returns 400 (removed in v0.8.0) |

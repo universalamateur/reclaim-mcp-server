@@ -60,12 +60,8 @@ cache:
     - poetry config virtualenvs.in-project true
     - poetry install
 
-.docker-setup:
-  image: docker:24.0.5-cli
-  services:
-    - docker:24.0.5-dind
-  before_script:
-    - docker info
+# Note: .docker-setup template removed in v0.8.1
+# Docker jobs now define image/services inline for buildx compatibility
 
 .standard-rules:
   rules:
@@ -132,23 +128,33 @@ build-package:
       - dist/
     expire_in: 1 week
 
-# Build Docker image (only on tags)
+# Build and push multi-platform Docker image to GitLab Container Registry (only on tags)
 build-docker:
   stage: build
-  extends:
-    - .docker-setup
+  image: docker:27
+  services:
+    - docker:27-dind
   needs: [build-package, test]
   rules:
     - if: $CI_COMMIT_TAG
+  variables:
+    PLATFORMS: "linux/amd64,linux/arm64"
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker buildx create --name multiarch --driver docker-container --use
+    - docker buildx inspect --bootstrap
   script:
-    - docker build -t reclaim-mcp-server:$CI_COMMIT_SHORT_SHA .
-    - docker save reclaim-mcp-server:$CI_COMMIT_SHORT_SHA > image.tar
-  artifacts:
-    paths:
-      - image.tar
-    expire_in: 1 day
+    - |
+      docker buildx build \
+        --platform $PLATFORMS \
+        --push \
+        --cache-from type=registry,ref=$GITLAB_IMAGE:buildcache \
+        --cache-to type=registry,ref=$GITLAB_IMAGE:buildcache,mode=max \
+        -t $GITLAB_IMAGE:$CI_COMMIT_TAG \
+        -t $GITLAB_IMAGE:latest \
+        .
 
-# Container vulnerability scanning (free alternative to GitLab Ultimate)
+# Container vulnerability scanning (scans from registry after build-docker pushes)
 container-scan:
   stage: build
   image:
@@ -158,8 +164,8 @@ container-scan:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - trivy image --input image.tar --format table --severity HIGH,CRITICAL
-    - trivy image --input image.tar --exit-code 1 --severity CRITICAL
+    - trivy image --format table --severity HIGH,CRITICAL $GITLAB_IMAGE:$CI_COMMIT_TAG
+    - trivy image --exit-code 1 --severity CRITICAL $GITLAB_IMAGE:$CI_COMMIT_TAG
   allow_failure: true
 
 # =============================================================================
@@ -246,38 +252,29 @@ publish-pypi:
 # PUBLISH STAGE - Docker Images
 # =============================================================================
 
-# Publish to GitLab Container Registry
-publish-gitlab-container:
-  stage: publish
-  extends:
-    - .docker-setup
-  needs: [build-docker]
-  before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-    - docker load < image.tar
-  script:
-    - docker tag reclaim-mcp-server:$CI_COMMIT_SHORT_SHA $GITLAB_IMAGE:$CI_COMMIT_TAG
-    - docker tag reclaim-mcp-server:$CI_COMMIT_SHORT_SHA $GITLAB_IMAGE:latest
-    - docker push $GITLAB_IMAGE:$CI_COMMIT_TAG
-    - docker push $GITLAB_IMAGE:latest
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: manual
+# Note: GitLab Container Registry publish merged into build-docker job (v0.8.1)
 
-# Publish to DockerHub
+# Publish multi-platform image to DockerHub
 publish-dockerhub:
   stage: publish
-  extends:
-    - .docker-setup
-  needs: [build-docker]
+  image: docker:27
+  services:
+    - docker:27-dind
+  needs: [test, build-package]
+  variables:
+    PLATFORMS: "linux/amd64,linux/arm64"
   before_script:
     - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    - docker load < image.tar
+    - docker buildx create --name multiarch --driver docker-container --use
+    - docker buildx inspect --bootstrap
   script:
-    - docker tag reclaim-mcp-server:$CI_COMMIT_SHORT_SHA $DOCKERHUB_IMAGE:$CI_COMMIT_TAG
-    - docker tag reclaim-mcp-server:$CI_COMMIT_SHORT_SHA $DOCKERHUB_IMAGE:latest
-    - docker push $DOCKERHUB_IMAGE:$CI_COMMIT_TAG
-    - docker push $DOCKERHUB_IMAGE:latest
+    - |
+      docker buildx build \
+        --platform $PLATFORMS \
+        --push \
+        -t $DOCKERHUB_IMAGE:$CI_COMMIT_TAG \
+        -t $DOCKERHUB_IMAGE:latest \
+        .
   environment:
     name: docker
     url: https://hub.docker.com/r/$DOCKERHUB_USERNAME/reclaim-mcp-server
@@ -289,6 +286,27 @@ publish-dockerhub:
 # RELEASE STAGE - GitLab Release
 # =============================================================================
 
+# Verify Docker images are pullable from both registries
+verify-docker-pull:
+  stage: release
+  image: docker:27
+  services:
+    - docker:27-dind
+  needs:
+    - job: build-docker
+    - job: publish-dockerhub
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: on_success
+      allow_failure: true
+  script:
+    - echo "Verifying Docker images are pullable..."
+    - docker pull $GITLAB_IMAGE:$CI_COMMIT_TAG
+    - docker pull $DOCKERHUB_IMAGE:$CI_COMMIT_TAG
+    - echo "Verifying images run correctly..."
+    - docker run --rm $GITLAB_IMAGE:$CI_COMMIT_TAG python -c "from reclaim_mcp import __version__; print(__version__)"
+    - docker run --rm $DOCKERHUB_IMAGE:$CI_COMMIT_TAG python -c "from reclaim_mcp import __version__; print(__version__)"
+
 # Create GitLab Release with links to all registries
 create-release:
   stage: release
@@ -298,7 +316,7 @@ create-release:
       artifacts: true
     - job: publish-gitlab-package
     - job: publish-pypi
-    - job: publish-gitlab-container
+    - job: build-docker
     - job: publish-dockerhub
   rules:
     - if: $CI_COMMIT_TAG

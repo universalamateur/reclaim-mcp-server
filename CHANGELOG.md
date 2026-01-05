@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-01-05
+
+### Added
+
+- **Multi-platform Docker builds**: Now building for `linux/amd64` and `linux/arm64`
+  - Native support for Apple Silicon (M1/M2/M3) without Rosetta 2 emulation
+- **Docker pull verification**: Automatic CI job verifies images are pullable after publish
+- **Registry caching**: Faster Docker rebuilds via `--cache-from`/`--cache-to`
+- **Tool reference docs**: New `docs/TOOLS.md` with complete tool documentation
+
+### Changed
+
+- Docker base image upgraded from `docker:24.0.5` to `docker:27`
+- Build and push consolidated into single `docker buildx` command
+- Container scanning now scans from registry instead of tarball artifact
+- GitLab Container Registry publish merged into `build-docker` job
+- **README refactored**: Shorter, badges, "What You Can Do" examples, collapsible sections
+
+### Fixed
+
+- ARM64 (Apple Silicon) compatibility for Docker images
+
+**Total tools: 40** (unchanged)
+
 ## [0.8.0] - 2026-01-04
 
 ### Added
