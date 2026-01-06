@@ -2,8 +2,8 @@
 
 > **Unofficial** Python MCP server for Reclaim.ai, built with FastMCP.
 
-**Current Version**: v0.8.1 (Released 2026-01-05)
-**Next Version**: v0.9.0 (Planning)
+**Current Version**: v0.9.0 (Released 2026-01-06)
+**Next Version**: v0.9.1 (Planning)
 
 ---
 

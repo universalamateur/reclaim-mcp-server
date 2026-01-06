@@ -1,7 +1,7 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: v0.8.1 - 40 Tools (configurable via profiles)
-**Date**: 2026-01-05
+**Status**: v0.9.0 - 40 Tools (configurable via profiles)
+**Date**: 2026-01-06
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
 ---
@@ -79,18 +79,31 @@ lint → test → security → build → publish → release
 ### Key Features
 
 - **OIDC Trusted Publishing**: No PyPI API tokens needed - GitLab exchanges OIDC tokens directly
-- **Manual publish triggers**: All publish jobs require manual trigger to prevent accidental releases
-- **TestPyPI → PyPI flow**: Validate packages on TestPyPI before production release
+- **Fully automated releases**: Tag push triggers all publish jobs automatically (v0.9.0+)
+- **MR validation**: TestPyPI runs on merge requests for pre-merge validation
 - **GitLab Environments**: Track deployments to `release-test`, `release`, and `docker`
 - **Container scanning**: Trivy scans for HIGH/CRITICAL vulnerabilities
 
-### Release Process
+### Release Process (v0.9.0+ - Fully Automated)
 
 1. Update version in 4 locations + `poetry lock`
 2. Update CHANGELOG.md
 3. Commit to main, create/push tag `vX.Y.Z`
-4. Manually trigger publish jobs in GitLab UI
-5. Create GitLab Release with asset links
+4. **Pipeline runs automatically** → PyPI, DockerHub, GitLab Release
+
+```
+Tag Push (vX.Y.Z)
+    │
+    ├─→ lint → test
+    │
+    └─→ build-package ─┬─→ build-docker (GitLab) → container-scan
+                       │
+                       ├─→ publish-gitlab-package (auto)
+                       ├─→ publish-pypi (auto)
+                       └─→ publish-dockerhub (auto)
+                                    │
+                                    └─→ verify-docker-pull → create-release
+```
 
 See [RELEASING.md](/RELEASING.md) for detailed instructions.
 
@@ -399,28 +412,62 @@ test:
 - [x] Automatic Docker pull verification in CI pipeline
 - [x] Registry caching for faster rebuilds
 - [x] Docker image upgraded to `docker:27`
+- [x] CI: `create-release` job fixed (native `release:` keyword, no PAT needed)
+- [x] README badges horizontal layout for PyPI
 
-### v0.9.0 (Planned)
+### v0.9.0 (In Progress)
 
 **Theme**: Discoverability via MCP Registries
 
-| ID | Description | Decision |
-|----|-------------|----------|
-| ROAD-001 | Publish to MCP Registry (registry.modelcontextprotocol.io) | ✅ Include |
-| ROAD-002 | Add Smithery Registry support (smithery.ai) | ✅ Include |
-| ROAD-003 | Document v0.8.0 as first public PyPI release | ✅ Include |
+| ID | Description | Status |
+|----|-------------|--------|
+| ROAD-001 | GitHub mirror setup | ⏳ Pending |
+| ROAD-002 | Smithery Registry (smithery.ai) | ⏳ Pending |
+| ROAD-003 | MCP Registry (registry.modelcontextprotocol.io) | ⏳ Pending |
+| ROAD-004 | Update documentation and badges | ⏳ Pending |
 
 **Prerequisites** (one-time setup):
-- GitHub mirror: `github.com/universalamateur/reclaim-mcp-server`
-- GitLab Push Mirror configuration
-- Smithery.ai account (GitHub OAuth)
-- mcp-publisher CLI
+- [ ] GitHub mirror: `github.com/universalamateur/reclaim-mcp-server`
+- [ ] GitLab Push Mirror configuration
+- [ ] Smithery.ai account (GitHub OAuth)
 
-**Files to add**:
-- `smithery.yaml` - Smithery.ai deployment config
-- `server.json` - MCP Registry definition
-- Update `Dockerfile` - MCP namespace labels
-- Update `README.md` - MCP marker + badges
+**Configuration files prepared**:
+- [x] `smithery.yaml` - Smithery.ai deployment config (stdio, uvx-based)
+- [x] `server.json` - MCP Registry metadata (io.github.universalamateur/reclaim-mcp-server)
+- [ ] Update `README.md` - MCP registry badges, installation from registries
+
+**Implementation Steps**:
+
+1. **GitHub Mirror Setup** (BLOCKING - required for both registries)
+   - Create `github.com/universalamateur/reclaim-mcp-server`
+   - Configure GitLab Push Mirror (Settings → Repository → Mirroring)
+   - Use SSH key authentication or deploy token
+   - Verify sync works with `git push`
+
+2. **Smithery Registry** (requires GitHub)
+   - `smithery.yaml` already in repo root ✅
+   - Sign up at smithery.ai with GitHub OAuth
+   - Connect GitHub repo to Smithery
+   - Server will be listed automatically
+
+3. **MCP Registry** (requires GitHub namespace)
+   - Registry is in **preview** since 2025-09-08
+   - `server.json` already in repo root ✅
+   - Namespace format: `io.github.universalamateur/reclaim-mcp-server`
+   - Use `mcp-publisher` CLI to submit:
+     ```bash
+     # Build the publisher
+     git clone https://github.com/modelcontextprotocol/registry.git
+     cd registry && make publisher
+
+     # Publish (requires GitHub auth)
+     ./bin/mcp-publisher publish --server-json /path/to/server.json
+     ```
+
+4. **Documentation Updates**
+   - Add registry badges to README (after registrations complete)
+   - Add Smithery CLI installation option
+   - Update CHANGELOG with v0.9.0 changes
 
 ### v1.0.0 (Future)
 

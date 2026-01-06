@@ -51,8 +51,7 @@ coverage.xml
 Thumbs.db
 .secret
 
-# Claude Code
-.claude/
-
 # Local development files
 .local/
+# MCP Registry tokens
+.mcpregistry_*

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.universalamateur/reclaim-mcp-server",
+  "description": "MCP server for Reclaim.ai calendar integration - manage tasks, habits, focus time, and calendar events via AI assistants",
+  "repository": {
+    "url": "https://github.com/universalamateur/reclaim-mcp-server",
+    "source": "github"
+  },
+  "version": "0.9.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "reclaim-mcp-server",
+      "version": "0.9.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environment_variables": [
+        {
+          "name": "RECLAIM_API_KEY",
+          "description": "Reclaim.ai API key from https://app.reclaim.ai/settings/developer",
+          "required": true
+        },
+        {
+          "name": "RECLAIM_TOOL_PROFILE",
+          "description": "Tool profile: minimal (20), standard (32), or full (40 tools)",
+          "required": false,
+          "default": "full"
+        }
+      ]
+    }
+  ]
+}

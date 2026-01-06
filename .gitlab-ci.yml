@@ -68,10 +68,7 @@ cache:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_REF_PROTECTED == "true"
 
-.tag-only-rules:
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: manual
+# Note: .tag-only-rules template removed in v0.9.0 (fully automated pipeline)
 
 # =============================================================================
 # LINT STAGE
@@ -119,6 +116,7 @@ build-package:
   rules:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_REF_PROTECTED == "true"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"  # For TestPyPI validation
   script:
     - poetry build
     # Note: twine check skipped - Poetry 2.x produces Metadata-Version 2.4
@@ -188,10 +186,8 @@ publish-gitlab-package:
     - python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
   rules:
     - if: $CI_COMMIT_TAG
-      when: manual
-      allow_failure: true
 
-# Publish to TestPyPI
+# Publish to TestPyPI (MR validation only)
 publish-testpypi:
   stage: publish
   image: python:3.12
@@ -216,11 +212,7 @@ publish-testpypi:
     name: release-test
     url: https://test.pypi.org/project/reclaim-mcp-server/
   rules:
-    - if: $CI_COMMIT_TAG
-      when: manual
-      allow_failure: true
-    - if: $CI_COMMIT_REF_PROTECTED == "true"
-      when: manual
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
 
 # Publish to Production PyPI
@@ -249,7 +241,6 @@ publish-pypi:
     url: https://pypi.org/project/reclaim-mcp-server/
   rules:
     - if: $CI_COMMIT_TAG
-      when: manual
 
 # =============================================================================
 # PUBLISH STAGE - Docker Images
@@ -286,7 +277,6 @@ publish-dockerhub:
     url: https://hub.docker.com/r/$DOCKERHUB_USERNAME/reclaim-mcp-server
   rules:
     - if: $CI_COMMIT_TAG
-      when: manual
 
 # =============================================================================
 # RELEASE STAGE - GitLab Release
@@ -327,7 +317,6 @@ create-release:
     - job: publish-dockerhub
   rules:
     - if: $CI_COMMIT_TAG
-      when: manual
   variables:
     PACKAGE_VERSION: "${CI_COMMIT_TAG#v}"
   before_script:

@@ -1,0 +1,30 @@
+# Smithery configuration for reclaim-mcp-server
+# https://smithery.ai/docs/build/project-config/smithery-yaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - RECLAIM_API_KEY
+    properties:
+      RECLAIM_API_KEY:
+        type: string
+        description: "Reclaim.ai API key from https://app.reclaim.ai/settings/developer"
+      RECLAIM_TOOL_PROFILE:
+        type: string
+        description: "Tool profile to use: minimal (20 tools), standard (32 tools), or full (40 tools, default)"
+        enum:
+          - minimal
+          - standard
+          - full
+        default: full
+  commandFunction: |-
+    (config) => ({
+      command: 'uvx',
+      args: ['reclaim-mcp-server'],
+      env: {
+        RECLAIM_API_KEY: config.RECLAIM_API_KEY,
+        ...(config.RECLAIM_TOOL_PROFILE && { RECLAIM_TOOL_PROFILE: config.RECLAIM_TOOL_PROFILE })
+      }
+    })

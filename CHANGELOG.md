@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.9.0] - 2026-01-06
+
+### Added
+
+- **MCP Registry configuration files** for v0.9.0 discoverability:
+  - `smithery.yaml` - Smithery.ai deployment config (stdio transport, uvx-based)
+  - `server.json` - MCP Registry metadata (`io.github.universalamateur/reclaim-mcp-server`)
+
+### Changed
+
+- **CI: Fully automated release pipeline** - all publish jobs now run automatically on tag push
+  - `publish-gitlab-package`, `publish-pypi`, `publish-dockerhub`, `create-release` trigger automatically
+  - `publish-testpypi` now runs on merge requests only (for CI validation)
+
+### Fixed
+
+- **CI: `create-release` job** now uses native `release:` keyword instead of `glab` CLI
+  - No longer requires PAT (`GITLAB_TOKEN`) - works with `CI_JOB_TOKEN`
+  - Uploads artifacts to Generic Package Registry for permanent download URLs
+- **README badges** now display horizontally on PyPI (single-line format)
 
 ## [0.8.1] - 2026-01-05
 

@@ -5,4 +5,4 @@ from reclaim_mcp import __version__
 
 def test_version() -> None:
     """Test that version is defined."""
-    assert __version__ == "0.8.1"
+    assert __version__ == "0.9.0"
