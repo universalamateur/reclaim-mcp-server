@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **MCP Registry configuration files** for v0.9.0 discoverability:
+- **MCP Registry discoverability**:
   - `smithery.yaml` - Smithery.ai deployment config (stdio transport, uvx-based)
-  - `server.json` - MCP Registry metadata (`io.github.universalamateur/reclaim-mcp-server`)
+  - `server.json` - MCP Registry metadata
+  - Listed on [Smithery](https://smithery.ai/server/universalamateur/reclaim-mcp-server) and [Glama](https://glama.ai/mcp/servers/@universalamateur/reclaim-mcp-server)
+- **GitHub mirror**: https://github.com/universalamateur/reclaim-mcp-server
 
 ### Changed
 

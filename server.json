@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.universalamateur/reclaim-mcp-server",
-  "description": "MCP server for Reclaim.ai calendar integration - manage tasks, habits, focus time, and calendar events via AI assistants",
+  "description": "MCP server for Reclaim.ai - calendar, tasks, habits, and focus time management",
   "repository": {
     "url": "https://github.com/universalamateur/reclaim-mcp-server",
     "source": "github"

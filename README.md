@@ -1,6 +1,6 @@
 # Reclaim.ai MCP Server _(UNOFFICIAL)_
 
-[![PyPI](https://img.shields.io/pypi/v/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![Downloads](https://img.shields.io/pypi/dm/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![Python](https://img.shields.io/pypi/pyversions/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![CI](https://gitlab.com/universalamateur1/reclaim-mcp-server/badges/main/pipeline.svg)](https://gitlab.com/universalamateur1/reclaim-mcp-server/-/pipelines) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI](https://img.shields.io/pypi/v/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![Downloads](https://img.shields.io/pypi/dm/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![Python](https://img.shields.io/pypi/pyversions/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **UNOFFICIAL** – Not affiliated with Reclaim.ai. Uses their public API , use at your own risk.
 
@@ -50,8 +50,11 @@ pip install reclaim-mcp-server
 |--------|---------|
 | **uvx** (recommended) | `uvx reclaim-mcp-server` |
 | **pip** | `pip install reclaim-mcp-server` |
+| **Smithery** | `npx -y @smithery/cli install universalamateur/reclaim-mcp-server --client claude` |
 | **Docker** | `docker pull universalamateur/reclaim-mcp-server` |
 | **Source** | `git clone https://gitlab.com/universalamateur1/reclaim-mcp-server.git && cd reclaim-mcp-server && poetry install` |
+
+**Registries:** [PyPI](https://pypi.org/project/reclaim-mcp-server/) · [Smithery](https://smithery.ai/server/universalamateur/reclaim-mcp-server) · [Glama](https://glama.ai/mcp/servers/@universalamateur/reclaim-mcp-server) · [GitHub](https://github.com/universalamateur/reclaim-mcp-server) · [GitLab](https://gitlab.com/universalamateur1/reclaim-mcp-server)
 
 ## Tool Profiles
 

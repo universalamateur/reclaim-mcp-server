@@ -415,59 +415,24 @@ test:
 - [x] CI: `create-release` job fixed (native `release:` keyword, no PAT needed)
 - [x] README badges horizontal layout for PyPI
 
-### v0.9.0 (In Progress)
+### v0.9.0 (Released 2026-01-06) ✅
 
-**Theme**: Discoverability via MCP Registries
+**Theme**: Discoverability via MCP Registries + Fully Automated CI
 
 | ID | Description | Status |
 |----|-------------|--------|
-| ROAD-001 | GitHub mirror setup | ⏳ Pending |
-| ROAD-002 | Smithery Registry (smithery.ai) | ⏳ Pending |
-| ROAD-003 | MCP Registry (registry.modelcontextprotocol.io) | ⏳ Pending |
-| ROAD-004 | Update documentation and badges | ⏳ Pending |
+| ROAD-001 | GitHub mirror setup | ✅ Done |
+| ROAD-002 | Smithery Registry (smithery.ai) | ✅ Done |
+| ROAD-003 | Glama.ai Registry | ✅ Done |
+| ROAD-004 | Update documentation and badges | ✅ Done |
+| ROAD-005 | Fully automated CI pipeline | ✅ Done |
 
-**Prerequisites** (one-time setup):
-- [ ] GitHub mirror: `github.com/universalamateur/reclaim-mcp-server`
-- [ ] GitLab Push Mirror configuration
-- [ ] Smithery.ai account (GitHub OAuth)
-
-**Configuration files prepared**:
-- [x] `smithery.yaml` - Smithery.ai deployment config (stdio, uvx-based)
-- [x] `server.json` - MCP Registry metadata (io.github.universalamateur/reclaim-mcp-server)
-- [ ] Update `README.md` - MCP registry badges, installation from registries
-
-**Implementation Steps**:
-
-1. **GitHub Mirror Setup** (BLOCKING - required for both registries)
-   - Create `github.com/universalamateur/reclaim-mcp-server`
-   - Configure GitLab Push Mirror (Settings → Repository → Mirroring)
-   - Use SSH key authentication or deploy token
-   - Verify sync works with `git push`
-
-2. **Smithery Registry** (requires GitHub)
-   - `smithery.yaml` already in repo root ✅
-   - Sign up at smithery.ai with GitHub OAuth
-   - Connect GitHub repo to Smithery
-   - Server will be listed automatically
-
-3. **MCP Registry** (requires GitHub namespace)
-   - Registry is in **preview** since 2025-09-08
-   - `server.json` already in repo root ✅
-   - Namespace format: `io.github.universalamateur/reclaim-mcp-server`
-   - Use `mcp-publisher` CLI to submit:
-     ```bash
-     # Build the publisher
-     git clone https://github.com/modelcontextprotocol/registry.git
-     cd registry && make publisher
-
-     # Publish (requires GitHub auth)
-     ./bin/mcp-publisher publish --server-json /path/to/server.json
-     ```
-
-4. **Documentation Updates**
-   - Add registry badges to README (after registrations complete)
-   - Add Smithery CLI installation option
-   - Update CHANGELOG with v0.9.0 changes
+**Registry URLs**:
+- GitHub: https://github.com/universalamateur/reclaim-mcp-server
+- Smithery: https://smithery.ai/server/universalamateur/reclaim-mcp-server
+- Glama: https://glama.ai/mcp/servers/@universalamateur/reclaim-mcp-server
+- PyPI: https://pypi.org/project/reclaim-mcp-server/
+- DockerHub: https://hub.docker.com/r/universalamateur/reclaim-mcp-server
 
 ### v1.0.0 (Future)
 
