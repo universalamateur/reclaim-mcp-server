@@ -130,4 +130,4 @@ Releases are managed through GitLab CI/CD with multi-registry publishing:
 | GitLab Container Registry | Docker images | `$CI_REGISTRY_*` |
 | DockerHub | Public Docker images | Access token |
 
-All publish jobs require **manual trigger** to prevent accidental releases.
+All publish jobs are now **fully automated** on tag push (v0.9.0+). Protected tags ensure only maintainers can trigger releases.

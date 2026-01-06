@@ -443,6 +443,26 @@ test:
 | ROAD-006 | Include mcp-name marker in PyPI package | ✅ Done |
 | ROAD-007 | MCP Registry listing (modelcontextprotocol.io) | ✅ Done |
 
+### v0.9.2 (Planned)
+
+**Theme**: Bug Fixes & Polish
+
+**Prerequisites**: Await external PR reviews + GitLab internal user feedback
+
+| ID | Description | Status |
+|----|-------------|--------|
+| BUG-001 | Cache key serialization fix | Planned |
+| BUG-002 | Error handling improvements | Planned |
+| DOC-001 | Update CONTRIBUTING.md release process | Planned |
+| DOC-002 | Update README troubleshooting | Planned |
+| DOC-003 | Add TOOLS.md profile comparison | Planned |
+| TEST-001 | Add server initialization tests | Planned |
+| TEST-002 | Add cache edge case tests | Planned |
+
+**External PR Status**:
+- Awesome MCP Servers [#1644](https://github.com/punkpeye/awesome-mcp-servers/pull/1644) - Pending
+- Docker MCP Registry [#927](https://github.com/docker/mcp-registry/pull/927) - Pending
+
 ### v1.0.0 (Future)
 
 **Theme**: Production Hardening
