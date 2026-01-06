@@ -1,6 +1,6 @@
 [project]
 name = "reclaim-mcp-server"
-version = "0.9.0"
+version = "0.9.1"
 description = "Unofficial MCP server for Reclaim.ai calendar integration"
 readme = "README.md"
 license = {text = "MIT"}
@@ -34,7 +34,7 @@ reclaim-mcp-server = "reclaim_mcp.server:main"
 
 [tool.poetry]
 name = "reclaim-mcp-server"
-version = "0.9.0"
+version = "0.9.1"
 description = "Unofficial MCP server for Reclaim.ai calendar integration"
 authors = ["Falko Sieverding"]
 license = "MIT"

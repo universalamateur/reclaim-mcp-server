@@ -1,6 +1,6 @@
 # Reclaim.ai MCP Server - Implementation Plan
 
-**Status**: v0.9.0 - 40 Tools (configurable via profiles)
+**Status**: v0.9.1 - 40 Tools (configurable via profiles)
 **Date**: 2026-01-06
 **Repo**: https://gitlab.com/universalamateur1/reclaim-mcp-server
 
@@ -433,6 +433,15 @@ test:
 - Glama: https://glama.ai/mcp/servers/@universalamateur/reclaim-mcp-server
 - PyPI: https://pypi.org/project/reclaim-mcp-server/
 - DockerHub: https://hub.docker.com/r/universalamateur/reclaim-mcp-server
+
+### v0.9.1 (Released 2026-01-06) ✅
+
+**Theme**: MCP Registry Publishing
+
+| ID | Description | Status |
+|----|-------------|--------|
+| ROAD-006 | Include mcp-name marker in PyPI package | ✅ Done |
+| ROAD-007 | MCP Registry listing (modelcontextprotocol.io) | ✅ Done |
 
 ### v1.0.0 (Future)
 

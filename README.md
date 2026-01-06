@@ -1,5 +1,7 @@
 # Reclaim.ai MCP Server _(UNOFFICIAL)_
 
+<!-- mcp-name: io.github.universalamateur/reclaim-mcp-server -->
+
 [![PyPI](https://img.shields.io/pypi/v/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![Downloads](https://img.shields.io/pypi/dm/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![Python](https://img.shields.io/pypi/pyversions/reclaim-mcp-server)](https://pypi.org/project/reclaim-mcp-server/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **UNOFFICIAL** – Not affiliated with Reclaim.ai. Uses their public API , use at your own risk.
