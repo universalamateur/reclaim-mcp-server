@@ -6,7 +6,7 @@ instructions:
       - "**/*.yaml"
       - "**/*.yml"
     instructions: |
-      1. KISS Principle: Verify the change is the simplest solution to the problem
+      1. KISS ("Keep it simple, stupid") Principle: Verify the change is the simplest solution to the problem
       2. Check for over-engineering - reject unnecessary abstractions or premature optimization
       3. Ensure code is understandable without extensive comments
       4. Verify changes are minimal - only what's needed to solve the problem
