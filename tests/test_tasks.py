@@ -202,6 +202,16 @@ class TestUpdateTask:
         )
 
     @pytest.mark.asyncio
+    async def test_update_task_small_duration(self, mock_client: MagicMock) -> None:
+        """Test update_task with duration < 15 min gets minimum 1 time chunk."""
+        mock_client.patch.return_value = {"id": 12345}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            await tasks.update_task(task_id=12345, duration_minutes=5)
+
+        mock_client.patch.assert_called_once_with("/api/tasks/12345", {"timeChunksRequired": 1})
+
+    @pytest.mark.asyncio
     async def test_update_task_no_changes(self, mock_client: MagicMock) -> None:
         """Test update_task with no changes sends empty payload."""
         mock_client.patch.return_value = {"id": 12345}

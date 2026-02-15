@@ -1,6 +1,8 @@
 """Tests for Pydantic models."""
 
-from reclaim_mcp.models import Task, TaskCreate, TaskStatus
+import pytest
+
+from reclaim_mcp.models import FocusSettingsUpdate, Task, TaskCreate, TaskStatus
 
 
 class TestTaskModel:
@@ -55,3 +57,24 @@ class TestTaskCreateModel:
         assert data["title"] == "New Task"
         assert data["duration_minutes"] == 60
         assert data["min_chunk_size_minutes"] == 30
+
+
+class TestFocusSettingsUpdate:
+    """Tests for FocusSettingsUpdate model validation."""
+
+    def test_focus_settings_update_min_exceeds_ideal(self) -> None:
+        """Test that min > ideal raises ValueError."""
+        with pytest.raises(ValueError, match="min_duration_mins cannot exceed ideal_duration_mins"):
+            FocusSettingsUpdate(min_duration_mins=60, ideal_duration_mins=30)
+
+    def test_focus_settings_update_ideal_exceeds_max(self) -> None:
+        """Test that ideal > max raises ValueError."""
+        with pytest.raises(ValueError, match="ideal_duration_mins cannot exceed max_duration_mins"):
+            FocusSettingsUpdate(ideal_duration_mins=60, max_duration_mins=30)
+
+    def test_focus_settings_update_valid_ordering(self) -> None:
+        """Test that valid min < ideal < max passes validation."""
+        settings = FocusSettingsUpdate(min_duration_mins=15, ideal_duration_mins=30, max_duration_mins=60)
+        assert settings.min_duration_mins == 15
+        assert settings.ideal_duration_mins == 30
+        assert settings.max_duration_mins == 60

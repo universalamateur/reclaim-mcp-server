@@ -392,13 +392,13 @@ class FocusSettingsUpdate(BaseModel):
     def validate_duration_order(self) -> "FocusSettingsUpdate":
         """Validate duration fields are in logical order when multiple provided."""
         # Check ordering: min <= ideal <= max
-        if self.min_duration_mins and self.ideal_duration_mins:
+        if self.min_duration_mins is not None and self.ideal_duration_mins is not None:
             if self.min_duration_mins > self.ideal_duration_mins:
                 raise ValueError("min_duration_mins cannot exceed ideal_duration_mins")
-        if self.ideal_duration_mins and self.max_duration_mins:
+        if self.ideal_duration_mins is not None and self.max_duration_mins is not None:
             if self.ideal_duration_mins > self.max_duration_mins:
                 raise ValueError("ideal_duration_mins cannot exceed max_duration_mins")
-        if self.min_duration_mins and self.max_duration_mins:
+        if self.min_duration_mins is not None and self.max_duration_mins is not None:
             if self.min_duration_mins > self.max_duration_mins:
                 raise ValueError("min_duration_mins cannot exceed max_duration_mins")
 

@@ -6,7 +6,7 @@ from typing import Any, Optional
 from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
-from reclaim_mcp.cache import invalidate_cache
+from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
@@ -37,6 +37,7 @@ def _extract_date(datetime_str: str) -> str:
     return datetime_str[:10]
 
 
+@ttl_cache(ttl=60)
 async def list_events(
     start: str,
     end: str,
@@ -82,6 +83,7 @@ async def list_events(
         raise ToolError(f"Error listing events: {e}")
 
 
+@ttl_cache(ttl=60)
 async def list_personal_events(
     start: Optional[str] = None,
     end: Optional[str] = None,

@@ -216,7 +216,10 @@ async def update_task(
         if validated.title is not None:
             update_data["title"] = validated.title
         if validated.duration_minutes is not None:
-            update_data["timeChunksRequired"] = validated.duration_minutes // 15
+            time_chunks = validated.duration_minutes // 15
+            if time_chunks < 1:
+                time_chunks = 1
+            update_data["timeChunksRequired"] = time_chunks
         if validated.due_date is not None:
             update_data["due"] = validated.due_date
         if validated.status is not None:
