@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-02-15
+
+### Fixed
+
+- **`update_task` zero time chunks**: Durations under 15 minutes now correctly produce
+  minimum 1 time chunk instead of 0 (matching `create_task` behavior)
+- **`FocusSettingsUpdate` validation**: Duration ordering checks now use `is not None`
+  instead of truthiness, fixing a logic error where valid values could be skipped
+- **Event caching**: Added `@ttl_cache(ttl=60)` to `list_events` and `list_personal_events`
+  to match existing `invalidate_cache` calls (were previously no-ops)
+
+**Total tools: 40** (unchanged)
+
 ## [0.9.1] - 2026-01-06
 
 ### Fixed
