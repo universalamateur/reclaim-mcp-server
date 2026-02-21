@@ -48,6 +48,13 @@ include:
   - template: Jobs/SAST.gitlab-ci.yml
   - template: Jobs/Secret-Detection.gitlab-ci.yml
 
+# Override included template stages (they default to 'test' which no longer exists)
+sast:
+  stage: security
+
+secret_detection:
+  stage: security
+
 cache:
   key: ${CI_COMMIT_REF_SLUG}-uv
   paths:
