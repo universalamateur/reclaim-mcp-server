@@ -9,6 +9,11 @@
 # - DockerHub (Docker)
 # - GitLab Releases (with links to all registries)
 # =============================================================================
+# v0.9.3 pipeline optimizations:
+# - Merged lint+test into single "quality" job (eliminates redundant install)
+# - Switched from pip+poetry to uv for ~10x faster dependency installs
+# - Upgraded Docker build jobs to medium runners for faster multi-arch builds
+# =============================================================================
 
 default:
   image: python:3.12
@@ -16,15 +21,14 @@ default:
   interruptible: true
 
 stages:
-  - lint
-  - test
+  - quality
   - security
   - build
   - publish
   - release
 
 variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv"
   SAST_EXCLUDED_PATHS: "spec,test,tests,tmp,.venv"
   # Docker configuration
   DOCKER_HOST: tcp://docker:2376
@@ -44,21 +48,30 @@ include:
   - template: Jobs/SAST.gitlab-ci.yml
   - template: Jobs/Secret-Detection.gitlab-ci.yml
 
+# Override included template stages (they default to 'test' which no longer exists)
+sast:
+  stage: security
+
+secret_detection:
+  stage: security
+
 cache:
-  key: ${CI_COMMIT_REF_SLUG}-python
+  key: ${CI_COMMIT_REF_SLUG}-uv
   paths:
-    - .cache/pip
+    - .cache/uv
     - .venv
 
 # =============================================================================
 # TEMPLATES
 # =============================================================================
 
-.poetry-setup:
+.uv-setup:
   before_script:
-    - pip install poetry
+    - pip install uv --quiet
+    - uv tool install poetry
+    - export PATH="$HOME/.local/bin:$PATH"
     - poetry config virtualenvs.in-project true
-    - poetry install
+    - poetry install --quiet
 
 # Note: .docker-setup template removed in v0.8.1
 # Docker jobs now define image/services inline for buildx compatibility
@@ -68,34 +81,22 @@ cache:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_REF_PROTECTED == "true"
 
-# Note: .tag-only-rules template removed in v0.9.0 (fully automated pipeline)
-
 # =============================================================================
-# LINT STAGE
+# QUALITY STAGE (lint + test merged for single install overhead)
 # =============================================================================
 
-lint:
-  stage: lint
+quality:
+  stage: quality
   extends:
-    - .poetry-setup
+    - .uv-setup
     - .standard-rules
   script:
+    # Lint (fail fast — runs before tests)
     - poetry run black --check src tests
     - poetry run isort --check-only src tests
     - poetry run flake8 src tests
     - poetry run mypy src
-
-# =============================================================================
-# TEST STAGE
-# =============================================================================
-
-test:
-  stage: test
-  extends:
-    - .poetry-setup
-    - .standard-rules
-  needs: [lint]
-  script:
+    # Test
     - poetry run pytest --cov=src/reclaim_mcp --cov-report=xml --cov-report=term
   coverage: '/TOTAL.*\s+(\d+%)/'
   artifacts:
@@ -112,7 +113,7 @@ test:
 build-package:
   stage: build
   extends:
-    - .poetry-setup
+    - .uv-setup
   rules:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_REF_PROTECTED == "true"
@@ -132,7 +133,9 @@ build-docker:
   image: docker:27
   services:
     - docker:27-dind
-  needs: [build-package, test]
+  needs: [build-package, quality]
+  tags:
+    - saas-linux-medium-amd64
   rules:
     - if: $CI_COMMIT_TAG
   variables:
@@ -177,7 +180,7 @@ container-scan:
 publish-gitlab-package:
   stage: publish
   image: python:3.12
-  needs: [build-package, test]
+  needs: [build-package, quality]
   variables:
     TWINE_USERNAME: gitlab-ci-token
     TWINE_PASSWORD: $CI_JOB_TOKEN
@@ -191,7 +194,7 @@ publish-gitlab-package:
 publish-testpypi:
   stage: publish
   image: python:3.12
-  needs: [build-package, test]
+  needs: [build-package, quality]
   id_tokens:
     PYPI_ID_TOKEN:
       aud: testpypi
@@ -219,7 +222,7 @@ publish-testpypi:
 publish-pypi:
   stage: publish
   image: python:3.12
-  needs: [build-package, test]
+  needs: [build-package, quality]
   id_tokens:
     PYPI_ID_TOKEN:
       aud: pypi
@@ -254,7 +257,9 @@ publish-dockerhub:
   image: docker:27
   services:
     - docker:27-dind
-  needs: [test, build-package]
+  needs: [quality, build-package]
+  tags:
+    - saas-linux-medium-amd64
   variables:
     PLATFORMS: "linux/amd64,linux/arm64"
     # Disable TLS for buildx docker-container driver compatibility

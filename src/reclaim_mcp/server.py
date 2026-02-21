@@ -162,6 +162,11 @@ async def update_task(
     duration_minutes: Optional[int] = None,
     due_date: Optional[str] = None,
     status: Optional[str] = None,
+    priority: Optional[str] = None,
+    snooze_until: Optional[str] = None,
+    notes: Optional[str] = None,
+    min_chunk_size_minutes: Optional[int] = None,
+    max_chunk_size_minutes: Optional[int] = None,
 ) -> dict:
     """Update an existing task in Reclaim.ai.
 
@@ -169,8 +174,13 @@ async def update_task(
         task_id: The task ID to update
         title: New title (optional)
         duration_minutes: New duration in minutes (optional)
-        due_date: New due date in ISO format (optional)
+        due_date: New due date in YYYY-MM-DD format (optional)
         status: New status - NEW, SCHEDULED, IN_PROGRESS, COMPLETE (optional)
+        priority: New priority - P1 (Critical), P2 (High), P3 (Medium), P4 (Low) (optional)
+        snooze_until: Don't schedule before this datetime, ISO format (optional)
+        notes: Update task notes (optional)
+        min_chunk_size_minutes: Minimum time block size in minutes (optional)
+        max_chunk_size_minutes: Maximum time block size in minutes (optional)
 
     Returns:
         Updated task object
@@ -182,6 +192,11 @@ async def update_task(
         duration_minutes=duration_minutes,
         due_date=due_date,
         status=status,
+        priority=priority,
+        snooze_until=snooze_until,
+        notes=notes,
+        min_chunk_size_minutes=min_chunk_size_minutes,
+        max_chunk_size_minutes=max_chunk_size_minutes,
     )
 
 

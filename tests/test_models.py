@@ -2,7 +2,7 @@
 
 import pytest
 
-from reclaim_mcp.models import FocusSettingsUpdate, Task, TaskCreate, TaskStatus
+from reclaim_mcp.models import FocusSettingsUpdate, Task, TaskCreate, TaskStatus, TaskUpdate
 
 
 class TestTaskModel:
@@ -57,6 +57,47 @@ class TestTaskCreateModel:
         assert data["title"] == "New Task"
         assert data["duration_minutes"] == 60
         assert data["min_chunk_size_minutes"] == 30
+
+
+class TestTaskUpdateModel:
+    """Tests for TaskUpdate model."""
+
+    def test_task_update_with_priority(self) -> None:
+        """Test TaskUpdate accepts valid priority."""
+        update = TaskUpdate(priority="P1")
+        assert update.priority is not None
+        assert update.priority.value == "P1"
+
+    def test_task_update_invalid_priority(self) -> None:
+        """Test TaskUpdate rejects invalid priority."""
+        with pytest.raises(ValueError):
+            TaskUpdate(priority="P5")
+
+    def test_task_update_with_notes(self) -> None:
+        """Test TaskUpdate accepts notes."""
+        update = TaskUpdate(notes="Some notes")
+        assert update.notes == "Some notes"
+
+    def test_task_update_chunk_size_validation(self) -> None:
+        """Test TaskUpdate rejects min > max chunk size."""
+        with pytest.raises(ValueError, match="min_chunk_size_minutes cannot exceed max_chunk_size_minutes"):
+            TaskUpdate(min_chunk_size_minutes=60, max_chunk_size_minutes=30)
+
+    def test_task_update_chunk_size_valid(self) -> None:
+        """Test TaskUpdate accepts valid chunk sizes."""
+        update = TaskUpdate(min_chunk_size_minutes=15, max_chunk_size_minutes=60)
+        assert update.min_chunk_size_minutes == 15
+        assert update.max_chunk_size_minutes == 60
+
+    def test_task_update_zero_duration_rejected(self) -> None:
+        """Test TaskUpdate rejects zero duration."""
+        with pytest.raises(ValueError):
+            TaskUpdate(duration_minutes=0)
+
+    def test_task_update_zero_chunk_size_rejected(self) -> None:
+        """Test TaskUpdate rejects zero chunk size."""
+        with pytest.raises(ValueError):
+            TaskUpdate(min_chunk_size_minutes=0)
 
 
 class TestFocusSettingsUpdate:
