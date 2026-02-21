@@ -19,6 +19,16 @@ def _get_client() -> ReclaimClient:
     return ReclaimClient(settings)
 
 
+def _to_api_due_datetime(date_str: str) -> str:
+    """Convert YYYY-MM-DD to ISO datetime for the PATCH /api/tasks endpoint.
+
+    The Reclaim API returns `due` as ISO datetime (e.g., '2026-02-22T15:00:00Z')
+    and the PATCH endpoint expects the same format. The POST endpoint uses a
+    separate `deadline` field that accepts YYYY-MM-DD.
+    """
+    return f"{date_str}T15:00:00Z"
+
+
 @ttl_cache(ttl=60)
 async def list_tasks(
     status: str = "NEW,SCHEDULED,IN_PROGRESS",
@@ -179,6 +189,11 @@ async def update_task(
     duration_minutes: Optional[int] = None,
     due_date: Optional[str] = None,
     status: Optional[str] = None,
+    priority: Optional[str] = None,
+    snooze_until: Optional[str] = None,
+    notes: Optional[str] = None,
+    min_chunk_size_minutes: Optional[int] = None,
+    max_chunk_size_minutes: Optional[int] = None,
 ) -> dict:
     """Update an existing task in Reclaim.ai.
 
@@ -186,8 +201,13 @@ async def update_task(
         task_id: The task ID to update
         title: New title (optional)
         duration_minutes: New duration in minutes (optional)
-        due_date: New due date in ISO format (optional)
+        due_date: New due date in YYYY-MM-DD format (optional)
         status: New status - NEW, SCHEDULED, IN_PROGRESS, COMPLETE (optional)
+        priority: New priority - P1, P2, P3, P4 (optional)
+        snooze_until: Don't schedule before this datetime, ISO format (optional)
+        notes: Update task notes (optional)
+        min_chunk_size_minutes: Minimum time block size in minutes (optional)
+        max_chunk_size_minutes: Maximum time block size in minutes (optional)
 
     Returns:
         Updated task object.
@@ -205,6 +225,11 @@ async def update_task(
             duration_minutes=duration_minutes,
             due_date=due_date,
             status=status,  # type: ignore[arg-type]
+            priority=priority,  # type: ignore[arg-type]
+            snooze_until=snooze_until,
+            notes=notes,
+            min_chunk_size_minutes=min_chunk_size_minutes,
+            max_chunk_size_minutes=max_chunk_size_minutes,
         )
     except ValidationError as e:
         raise ToolError(format_validation_errors(e))
@@ -221,9 +246,19 @@ async def update_task(
                 time_chunks = 1
             update_data["timeChunksRequired"] = time_chunks
         if validated.due_date is not None:
-            update_data["due"] = validated.due_date
+            update_data["due"] = _to_api_due_datetime(validated.due_date)
         if validated.status is not None:
             update_data["status"] = validated.status.value
+        if validated.priority is not None:
+            update_data["priority"] = validated.priority.value
+        if validated.snooze_until is not None:
+            update_data["snoozeUntil"] = validated.snooze_until
+        if validated.notes is not None:
+            update_data["notes"] = validated.notes
+        if validated.min_chunk_size_minutes is not None:
+            update_data["minChunkSize"] = validated.min_chunk_size_minutes
+        if validated.max_chunk_size_minutes is not None:
+            update_data["maxChunkSize"] = validated.max_chunk_size_minutes
 
         result = await client.patch(f"/api/tasks/{validated_id.task_id}", update_data)
         invalidate_cache("list_tasks")

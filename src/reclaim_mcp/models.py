@@ -176,13 +176,18 @@ class TaskUpdate(BaseModel):
     duration_minutes: Optional[int] = Field(default=None)
     status: Optional[TaskStatus] = None
     due_date: Optional[str] = None
+    priority: Optional[TaskPriority] = None
+    snooze_until: Optional[str] = None
+    notes: Optional[str] = None
+    min_chunk_size_minutes: Optional[int] = Field(default=None)
+    max_chunk_size_minutes: Optional[int] = Field(default=None)
 
-    @field_validator("duration_minutes")
+    @field_validator("duration_minutes", "min_chunk_size_minutes", "max_chunk_size_minutes")
     @classmethod
-    def validate_duration_positive(cls, v: Optional[int]) -> Optional[int]:
-        """Validate duration_minutes is positive when provided."""
+    def validate_positive_int(cls, v: Optional[int]) -> Optional[int]:
+        """Validate numeric fields are positive when provided."""
         if v is not None and v <= 0:
-            raise ValueError("duration_minutes must be greater than 0")
+            raise ValueError("value must be greater than 0")
         return v
 
     @field_validator("title")
@@ -201,6 +206,14 @@ class TaskUpdate(BaseModel):
     def validate_due_date(cls, v: Optional[str]) -> Optional[str]:
         """Validate due_date is in YYYY-MM-DD format."""
         return _validate_date_format(v)
+
+    @model_validator(mode="after")
+    def validate_update_constraints(self) -> "TaskUpdate":
+        """Validate cross-field constraints."""
+        if self.min_chunk_size_minutes is not None and self.max_chunk_size_minutes is not None:
+            if self.min_chunk_size_minutes > self.max_chunk_size_minutes:
+                raise ValueError("min_chunk_size_minutes cannot exceed max_chunk_size_minutes")
+        return self
 
 
 # --- Habit Validation Models ---

@@ -5,6 +5,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from reclaim_mcp.tools import tasks
+from reclaim_mcp.tools.tasks import _to_api_due_datetime
+
+
+class TestToApiDueDatetime:
+    """Tests for _to_api_due_datetime helper."""
+
+    def test_converts_date_to_iso_datetime(self) -> None:
+        """Test YYYY-MM-DD is converted to ISO datetime with T15:00:00Z."""
+        assert _to_api_due_datetime("2026-03-07") == "2026-03-07T15:00:00Z"
+
+    def test_preserves_date_portion(self) -> None:
+        """Test the date portion is preserved exactly."""
+        assert _to_api_due_datetime("2026-12-31") == "2026-12-31T15:00:00Z"
 
 
 @pytest.fixture
@@ -197,8 +210,77 @@ class TestUpdateTask:
             {
                 "title": "New Title",
                 "status": "IN_PROGRESS",
-                "due": "2026-02-01",
+                "due": "2026-02-01T15:00:00Z",
             },
+        )
+
+    @pytest.mark.asyncio
+    async def test_update_task_due_date_format(self, mock_client: MagicMock) -> None:
+        """Test update_task converts YYYY-MM-DD to ISO datetime for the API."""
+        mock_client.patch.return_value = {"id": 12345}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            await tasks.update_task(task_id=12345, due_date="2026-03-07")
+
+        mock_client.patch.assert_called_once_with(
+            "/api/tasks/12345",
+            {"due": "2026-03-07T15:00:00Z"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_update_task_priority(self, mock_client: MagicMock) -> None:
+        """Test update_task with priority change."""
+        mock_client.patch.return_value = {"id": 12345}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            await tasks.update_task(task_id=12345, priority="P1")
+
+        mock_client.patch.assert_called_once_with(
+            "/api/tasks/12345",
+            {"priority": "P1"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_update_task_notes(self, mock_client: MagicMock) -> None:
+        """Test update_task with notes."""
+        mock_client.patch.return_value = {"id": 12345}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            await tasks.update_task(task_id=12345, notes="Updated research notes")
+
+        mock_client.patch.assert_called_once_with(
+            "/api/tasks/12345",
+            {"notes": "Updated research notes"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_update_task_snooze_until(self, mock_client: MagicMock) -> None:
+        """Test update_task with snooze_until."""
+        mock_client.patch.return_value = {"id": 12345}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            await tasks.update_task(task_id=12345, snooze_until="2026-03-01T09:00:00Z")
+
+        mock_client.patch.assert_called_once_with(
+            "/api/tasks/12345",
+            {"snoozeUntil": "2026-03-01T09:00:00Z"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_update_task_chunk_sizes(self, mock_client: MagicMock) -> None:
+        """Test update_task with min/max chunk size changes."""
+        mock_client.patch.return_value = {"id": 12345}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            await tasks.update_task(
+                task_id=12345,
+                min_chunk_size_minutes=30,
+                max_chunk_size_minutes=60,
+            )
+
+        mock_client.patch.assert_called_once_with(
+            "/api/tasks/12345",
+            {"minChunkSize": 30, "maxChunkSize": 60},
         )
 
     @pytest.mark.asyncio
