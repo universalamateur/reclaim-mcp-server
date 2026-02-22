@@ -1,20 +1,23 @@
 """Tool profile definitions for Reclaim MCP Server.
 
 Profiles allow users to limit which tools are exposed based on their needs:
-- minimal: Core tasks + habits basics (20 tools)
-- standard: Core productivity without niche tools (32 tools)
-- full: All tools (40 tools, default)
+- minimal: Core tasks + habits basics + context (22 tools)
+- standard: Core productivity without niche tools (38 tools)
+- full: All tools (47 tools, default)
 """
 
 from typing import Literal
 
 ProfileName = Literal["minimal", "standard", "full"]
 
-# Minimal profile: Core tasks + habits basics (20 tools)
+# Minimal profile: Core tasks + habits basics + context (22 tools)
 MINIMAL_TOOLS: set[str] = {
     # System (2)
     "health_check",
     "verify_connection",
+    # Context (2)
+    "get_current_moment",
+    "get_next_moment",
     # Tasks (7)
     "list_tasks",
     "create_task",
@@ -40,7 +43,7 @@ MINIMAL_TOOLS: set[str] = {
     "get_user_analytics",
 }
 
-# Standard profile: Adds workflow tools (32 tools)
+# Standard profile: Adds workflow tools (38 tools)
 STANDARD_TOOLS: set[str] = MINIMAL_TOOLS | {
     # Tasks workflow (5)
     "add_time_to_task",
@@ -48,6 +51,11 @@ STANDARD_TOOLS: set[str] = MINIMAL_TOOLS | {
     "stop_task",
     "prioritize_task",
     "restart_task",
+    # Tasks flow control (4)
+    "snooze_task",
+    "clear_task_snooze",
+    "unarchive_task",
+    "extend_task_duration",
     # Habits workflow (2)
     "enable_habit",
     "disable_habit",
@@ -60,7 +68,7 @@ STANDARD_TOOLS: set[str] = MINIMAL_TOOLS | {
     "get_focus_insights",
 }
 
-# Full profile: All tools (40 tools)
+# Full profile: All tools (47 tools)
 FULL_TOOLS: set[str] = STANDARD_TOOLS | {
     # Events advanced (2)
     "set_event_rsvp",
@@ -73,6 +81,8 @@ FULL_TOOLS: set[str] = STANDARD_TOOLS | {
     "convert_event_to_habit",
     # Habit extra (1) - get_habit wasn't in minimal
     "get_habit",
+    # Tasks advanced (1)
+    "plan_work",
 }
 
 PROFILES: dict[str, set[str]] = {

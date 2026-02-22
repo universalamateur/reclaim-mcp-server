@@ -9,7 +9,7 @@ from reclaim_mcp.cache import invalidate_cache, ttl_cache
 from reclaim_mcp.client import ReclaimClient
 from reclaim_mcp.config import get_settings
 from reclaim_mcp.exceptions import NotFoundError, RateLimitError, ReclaimError
-from reclaim_mcp.models import ListLimit, TaskCreate, TaskId, TaskListParams, TaskUpdate, TimeLog
+from reclaim_mcp.models import ListLimit, PlanWork, TaskCreate, TaskId, TaskListParams, TaskSnooze, TaskUpdate, TimeLog
 from reclaim_mcp.utils import format_validation_errors
 
 
@@ -493,3 +493,171 @@ async def restart_task(task_id: int) -> dict:
         raise ToolError(str(e))
     except ReclaimError as e:
         raise ToolError(f"Error restarting task {validated.task_id}: {e}")
+
+
+async def snooze_task(task_id: int, snooze_option: str) -> dict:
+    """Snooze a task for a preset duration.
+
+    Args:
+        task_id: The task ID to snooze
+        snooze_option: Duration preset (FROM_NOW_15M, FROM_NOW_30M, FROM_NOW_1H,
+            FROM_NOW_2H, FROM_NOW_4H, TOMORROW, IN_TWO_DAYS, NEXT_WEEK)
+
+    Returns:
+        Planner action result with updated task state.
+    """
+    try:
+        validated = TaskSnooze(
+            task_id=task_id,
+            snooze_option=snooze_option,  # type: ignore[arg-type]
+        )
+    except ValidationError as e:
+        raise ToolError(format_validation_errors(e))
+
+    try:
+        client = _get_client()
+        result = await client.post(
+            f"/api/planner/task/{validated.task_id}/snooze",
+            {},
+            params={"snoozeOption": validated.snooze_option.value},
+        )
+        invalidate_cache("list_tasks")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Task {validated.task_id} not found")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error snoozing task {validated.task_id}: {e}")
+
+
+async def clear_task_snooze(task_id: int) -> dict:
+    """Clear a snooze on a task, making it immediately schedulable again.
+
+    Args:
+        task_id: The task ID to clear snooze for
+
+    Returns:
+        Planner action result with updated task state.
+    """
+    try:
+        validated = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(format_validation_errors(e))
+
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/planner/task/{validated.task_id}/clear-snooze", {})
+        invalidate_cache("list_tasks")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Task {validated.task_id} not found")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error clearing snooze for task {validated.task_id}: {e}")
+
+
+async def unarchive_task(task_id: int) -> dict:
+    """Restore an archived task back to active scheduling.
+
+    Args:
+        task_id: The task ID to unarchive
+
+    Returns:
+        Planner action result with updated task state.
+    """
+    try:
+        validated = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(format_validation_errors(e))
+
+    try:
+        client = _get_client()
+        result = await client.post(f"/api/planner/unarchive/task/{validated.task_id}", {})
+        invalidate_cache("list_tasks")
+        invalidate_cache("list_completed_tasks")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Task {validated.task_id} not found")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error unarchiving task {validated.task_id}: {e}")
+
+
+async def extend_task_duration(task_id: int, minutes: int) -> dict:
+    """Add more scheduled time to a task (extends capacity, doesn't log work).
+
+    Args:
+        task_id: The task ID to extend
+        minutes: Additional minutes to add
+
+    Returns:
+        Planner action result with updated task state.
+    """
+    try:
+        validated_id = TaskId(task_id=task_id)
+    except ValidationError as e:
+        raise ToolError(format_validation_errors(e))
+
+    try:
+        validated_time = TimeLog(minutes=minutes)
+    except ValidationError as e:
+        raise ToolError(format_validation_errors(e))
+
+    try:
+        client = _get_client()
+        result = await client.post(
+            f"/api/planner/add-time/task/{validated_id.task_id}",
+            {},
+            params={"minutes": validated_time.minutes},
+        )
+        invalidate_cache("list_tasks")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Task {validated_id.task_id} not found")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error extending task {validated_id.task_id}: {e}")
+
+
+async def plan_work(task_id: int, date_time: str, duration_minutes: int) -> dict:
+    """Schedule task work at a specific date/time.
+
+    Args:
+        task_id: The task ID to schedule
+        date_time: When to schedule the work (ISO format, e.g., '2026-02-22T10:00:00Z')
+        duration_minutes: How long the work block should be
+
+    Returns:
+        Planner action result with updated task state.
+    """
+    try:
+        validated = PlanWork(
+            task_id=task_id,
+            date_time=date_time,
+            duration_minutes=duration_minutes,
+        )
+    except ValidationError as e:
+        raise ToolError(format_validation_errors(e))
+
+    try:
+        client = _get_client()
+        result = await client.post(
+            f"/api/planner/plan-work/task/{validated.task_id}",
+            {},
+            params={
+                "dateTime": validated.date_time,
+                "durationMinutes": validated.duration_minutes,
+            },
+        )
+        invalidate_cache("list_tasks")
+        return result
+    except NotFoundError:
+        raise ToolError(f"Task {validated.task_id} not found")
+    except RateLimitError as e:
+        raise ToolError(str(e))
+    except ReclaimError as e:
+        raise ToolError(f"Error planning work for task {validated.task_id}: {e}")

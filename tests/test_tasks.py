@@ -393,3 +393,124 @@ class TestAddTimeToTask:
             {},
             params={"minutes": 5},
         )
+
+
+class TestSnoozeTask:
+    """Tests for snooze_task function."""
+
+    @pytest.mark.asyncio
+    async def test_snooze_task(self, mock_client: MagicMock) -> None:
+        """Test snooze_task sends correct snooze option."""
+        mock_client.post.return_value = {"status": "OK"}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            result = await tasks.snooze_task(task_id=12345, snooze_option="FROM_NOW_1H")
+
+        assert result == {"status": "OK"}
+        mock_client.post.assert_called_once_with(
+            "/api/planner/task/12345/snooze",
+            {},
+            params={"snoozeOption": "FROM_NOW_1H"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_snooze_task_tomorrow(self, mock_client: MagicMock) -> None:
+        """Test snooze_task with TOMORROW option."""
+        mock_client.post.return_value = {"status": "OK"}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            await tasks.snooze_task(task_id=12345, snooze_option="TOMORROW")
+
+        mock_client.post.assert_called_once_with(
+            "/api/planner/task/12345/snooze",
+            {},
+            params={"snoozeOption": "TOMORROW"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_snooze_task_invalid_option(self) -> None:
+        """Test snooze_task rejects invalid snooze option."""
+        from fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError):
+            await tasks.snooze_task(task_id=12345, snooze_option="INVALID")
+
+
+class TestClearTaskSnooze:
+    """Tests for clear_task_snooze function."""
+
+    @pytest.mark.asyncio
+    async def test_clear_task_snooze(self, mock_client: MagicMock) -> None:
+        """Test clear_task_snooze calls correct endpoint."""
+        mock_client.post.return_value = {"status": "OK"}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            result = await tasks.clear_task_snooze(task_id=12345)
+
+        assert result == {"status": "OK"}
+        mock_client.post.assert_called_once_with("/api/planner/task/12345/clear-snooze", {})
+
+
+class TestUnarchiveTask:
+    """Tests for unarchive_task function."""
+
+    @pytest.mark.asyncio
+    async def test_unarchive_task(self, mock_client: MagicMock) -> None:
+        """Test unarchive_task calls correct endpoint."""
+        mock_client.post.return_value = {"status": "OK"}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            result = await tasks.unarchive_task(task_id=12345)
+
+        assert result == {"status": "OK"}
+        mock_client.post.assert_called_once_with("/api/planner/unarchive/task/12345", {})
+
+
+class TestExtendTaskDuration:
+    """Tests for extend_task_duration function."""
+
+    @pytest.mark.asyncio
+    async def test_extend_task_duration(self, mock_client: MagicMock) -> None:
+        """Test extend_task_duration adds time via planner endpoint."""
+        mock_client.post.return_value = {"status": "OK"}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            result = await tasks.extend_task_duration(task_id=12345, minutes=30)
+
+        assert result == {"status": "OK"}
+        mock_client.post.assert_called_once_with(
+            "/api/planner/add-time/task/12345",
+            {},
+            params={"minutes": 30},
+        )
+
+
+class TestPlanWork:
+    """Tests for plan_work function."""
+
+    @pytest.mark.asyncio
+    async def test_plan_work(self, mock_client: MagicMock) -> None:
+        """Test plan_work schedules task at specific time."""
+        mock_client.post.return_value = {"status": "OK"}
+
+        with patch.object(tasks, "_get_client", return_value=mock_client):
+            result = await tasks.plan_work(
+                task_id=12345,
+                date_time="2026-02-22T10:00:00Z",
+                duration_minutes=60,
+            )
+
+        assert result == {"status": "OK"}
+        mock_client.post.assert_called_once_with(
+            "/api/planner/plan-work/task/12345",
+            {},
+            params={"dateTime": "2026-02-22T10:00:00Z", "durationMinutes": 60},
+        )
+
+    @pytest.mark.asyncio
+    async def test_plan_work_invalid_datetime(self) -> None:
+        """Test plan_work rejects invalid datetime format."""
+        from fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError):
+            await tasks.plan_work(task_id=12345, date_time="not-a-date", duration_minutes=60)

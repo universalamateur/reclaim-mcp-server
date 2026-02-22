@@ -8,7 +8,7 @@ from fastmcp.exceptions import ToolError
 
 from reclaim_mcp import __version__
 from reclaim_mcp.profiles import is_tool_enabled
-from reclaim_mcp.tools import analytics, events, focus, habits, tasks
+from reclaim_mcp.tools import analytics, events, focus, habits, moments, tasks
 
 mcp = FastMCP("Reclaim.ai")
 
@@ -303,6 +303,111 @@ async def restart_task(ctx: Context, task_id: int) -> dict:
     """
     await ctx.info(f"Restarting task: id={task_id}")
     return await tasks.restart_task(task_id=task_id)
+
+
+@tool
+async def snooze_task(ctx: Context, task_id: int, snooze_option: str) -> dict:
+    """Snooze a task for a preset duration.
+
+    Args:
+        task_id: The task ID to snooze
+        snooze_option: Duration preset - FROM_NOW_15M, FROM_NOW_30M, FROM_NOW_1H,
+            FROM_NOW_2H, FROM_NOW_4H, TOMORROW, IN_TWO_DAYS, NEXT_WEEK
+
+    Returns:
+        Planner action result with updated task state
+    """
+    await ctx.info(f"Snoozing task: id={task_id}, option={snooze_option}")
+    return await tasks.snooze_task(task_id=task_id, snooze_option=snooze_option)
+
+
+@tool
+async def clear_task_snooze(ctx: Context, task_id: int) -> dict:
+    """Clear a snooze on a task, making it immediately schedulable again.
+
+    Args:
+        task_id: The task ID to clear snooze for
+
+    Returns:
+        Planner action result with updated task state
+    """
+    await ctx.info(f"Clearing snooze: id={task_id}")
+    return await tasks.clear_task_snooze(task_id=task_id)
+
+
+@tool
+async def unarchive_task(ctx: Context, task_id: int) -> dict:
+    """Restore an archived task back to active scheduling.
+
+    Args:
+        task_id: The task ID to unarchive
+
+    Returns:
+        Planner action result with updated task state
+    """
+    await ctx.info(f"Unarchiving task: id={task_id}")
+    return await tasks.unarchive_task(task_id=task_id)
+
+
+@tool
+async def extend_task_duration(ctx: Context, task_id: int, minutes: int) -> dict:
+    """Add more scheduled time to a task (extends capacity, doesn't log work).
+
+    Args:
+        task_id: The task ID to extend
+        minutes: Additional minutes to add
+
+    Returns:
+        Planner action result with updated task state
+    """
+    await ctx.info(f"Extending task duration: id={task_id}, +{minutes}min")
+    return await tasks.extend_task_duration(task_id=task_id, minutes=minutes)
+
+
+@tool
+async def plan_work(
+    ctx: Context,
+    task_id: int,
+    date_time: str,
+    duration_minutes: int,
+) -> dict:
+    """Schedule task work at a specific date/time.
+
+    Args:
+        task_id: The task ID to schedule
+        date_time: When to schedule the work (ISO format, e.g., '2026-02-22T10:00:00Z')
+        duration_minutes: How long the work block should be in minutes
+
+    Returns:
+        Planner action result with updated task state
+    """
+    await ctx.info(f"Planning work: task={task_id}, at={date_time}, {duration_minutes}min")
+    return await tasks.plan_work(task_id=task_id, date_time=date_time, duration_minutes=duration_minutes)
+
+
+# Moment/Context Tools
+
+
+@tool
+async def get_current_moment(ctx: Context) -> dict:
+    """Get what the user is currently doing right now.
+
+    Returns:
+        Current moment with active event, task, or free time info.
+    """
+    await ctx.info("Getting current moment")
+    return await moments.get_current_moment()
+
+
+@tool
+async def get_next_moment(ctx: Context) -> dict:
+    """Get what's coming up next on the user's schedule.
+
+    Returns:
+        Next upcoming event, task, or transition info.
+    """
+    await ctx.info("Getting next moment")
+    return await moments.get_next_moment()
 
 
 # Calendar & Event Tools

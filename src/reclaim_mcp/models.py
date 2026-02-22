@@ -80,6 +80,19 @@ class TimePolicyType(str, Enum):
     MEETING = "MEETING"
 
 
+class SnoozeOption(str, Enum):
+    """Snooze duration presets for tasks."""
+
+    FROM_NOW_15M = "FROM_NOW_15M"
+    FROM_NOW_30M = "FROM_NOW_30M"
+    FROM_NOW_1H = "FROM_NOW_1H"
+    FROM_NOW_2H = "FROM_NOW_2H"
+    FROM_NOW_4H = "FROM_NOW_4H"
+    TOMORROW = "TOMORROW"
+    IN_TWO_DAYS = "IN_TWO_DAYS"
+    NEXT_WEEK = "NEXT_WEEK"
+
+
 class RsvpStatus(str, Enum):
     """RSVP status values for calendar events.
 
@@ -214,6 +227,30 @@ class TaskUpdate(BaseModel):
             if self.min_chunk_size_minutes > self.max_chunk_size_minutes:
                 raise ValueError("min_chunk_size_minutes cannot exceed max_chunk_size_minutes")
         return self
+
+
+class TaskSnooze(BaseModel):
+    """Validation model for snoozing a task."""
+
+    task_id: int = Field(gt=0)
+    snooze_option: SnoozeOption
+
+
+class PlanWork(BaseModel):
+    """Validation model for scheduling task work at a specific time."""
+
+    task_id: int = Field(gt=0)
+    date_time: str
+    duration_minutes: int = Field(gt=0)
+
+    @field_validator("date_time")
+    @classmethod
+    def validate_datetime_format(cls, v: str) -> str:
+        """Validate date_time is in ISO format."""
+        iso_pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})?$"
+        if not re.match(iso_pattern, v):
+            raise ValueError("date_time must be in ISO format (e.g., '2026-01-02T14:00:00Z')")
+        return v
 
 
 # --- Habit Validation Models ---

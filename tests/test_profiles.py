@@ -18,16 +18,16 @@ class TestProfileDefinitions:
     """Tests for profile tool sets."""
 
     def test_minimal_tools_count(self) -> None:
-        """Test minimal profile has 20 tools."""
-        assert len(MINIMAL_TOOLS) == 20
+        """Test minimal profile has 22 tools."""
+        assert len(MINIMAL_TOOLS) == 22
 
     def test_standard_tools_count(self) -> None:
-        """Test standard profile has 32 tools."""
-        assert len(STANDARD_TOOLS) == 32
+        """Test standard profile has 38 tools."""
+        assert len(STANDARD_TOOLS) == 38
 
     def test_full_tools_count(self) -> None:
-        """Test full profile has 40 tools."""
-        assert len(FULL_TOOLS) == 40
+        """Test full profile has 47 tools."""
+        assert len(FULL_TOOLS) == 47
 
     def test_minimal_is_subset_of_standard(self) -> None:
         """Test minimal tools are all in standard."""
@@ -156,9 +156,9 @@ class TestGetProfileInfo:
         """Test profile info returns correct counts."""
         info = get_profile_info()
         assert info == {
-            "minimal": 20,
-            "standard": 32,
-            "full": 40,
+            "minimal": 22,
+            "standard": 38,
+            "full": 47,
         }
 
 
@@ -184,4 +184,4 @@ class TestServerToolDecorator:
             # Re-check that get_enabled_tools with default returns full
             from reclaim_mcp.profiles import get_enabled_tools
 
-            assert len(get_enabled_tools()) == 40
+            assert len(get_enabled_tools()) == 47
