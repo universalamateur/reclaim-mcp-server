@@ -8,7 +8,7 @@ from fastmcp.exceptions import ToolError
 
 from reclaim_mcp import __version__
 from reclaim_mcp.profiles import is_tool_enabled
-from reclaim_mcp.tools import analytics, events, focus, habits, moments, tasks
+from reclaim_mcp.tools import analytics, events, focus, habits, moments, scheduling, tasks
 
 mcp = FastMCP("Reclaim.ai")
 
@@ -408,6 +408,51 @@ async def get_next_moment(ctx: Context) -> dict:
     """
     await ctx.info("Getting next moment")
     return await moments.get_next_moment()
+
+
+# Scheduling Tools
+
+
+@tool
+async def get_working_hours(ctx: Context) -> list[dict]:
+    """Get all working hours / availability schemes for the user.
+
+    Returns:
+        List of time scheme objects with schedule policies and day-by-day hours.
+    """
+    await ctx.info("Getting working hours")
+    return await scheduling.get_working_hours()
+
+
+@tool
+async def find_available_times(
+    ctx: Context,
+    attendees: list[str],
+    duration_minutes: int,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: Optional[int] = None,
+) -> dict:
+    """Find available meeting times for a set of attendees.
+
+    Args:
+        attendees: List of email addresses to find mutual availability for
+        duration_minutes: Required meeting duration in minutes
+        start_date: Start of search window in YYYY-MM-DD format (optional, provide with end_date)
+        end_date: End of search window in YYYY-MM-DD format (optional, provide with start_date)
+        limit: Maximum number of suggested times to return (optional)
+
+    Returns:
+        Suggested times with availability info for each slot.
+    """
+    await ctx.info(f"Finding available times: {len(attendees)} attendees, {duration_minutes}min")
+    return await scheduling.find_available_times(
+        attendees=attendees,
+        duration_minutes=duration_minutes,
+        start_date=start_date,
+        end_date=end_date,
+        limit=limit,
+    )
 
 
 # Calendar & Event Tools

@@ -2,8 +2,8 @@
 
 Profiles allow users to limit which tools are exposed based on their needs:
 - minimal: Core tasks + habits basics + context (22 tools)
-- standard: Core productivity without niche tools (38 tools)
-- full: All tools (47 tools, default)
+- standard: Core productivity without niche tools (39 tools)
+- full: All tools (49 tools, default)
 """
 
 from typing import Literal
@@ -43,8 +43,10 @@ MINIMAL_TOOLS: set[str] = {
     "get_user_analytics",
 }
 
-# Standard profile: Adds workflow tools (38 tools)
+# Standard profile: Adds workflow tools (39 tools)
 STANDARD_TOOLS: set[str] = MINIMAL_TOOLS | {
+    # Scheduling (1)
+    "get_working_hours",
     # Tasks workflow (5)
     "add_time_to_task",
     "start_task",
@@ -68,8 +70,10 @@ STANDARD_TOOLS: set[str] = MINIMAL_TOOLS | {
     "get_focus_insights",
 }
 
-# Full profile: All tools (47 tools)
+# Full profile: All tools (49 tools)
 FULL_TOOLS: set[str] = STANDARD_TOOLS | {
+    # Scheduling (1)
+    "find_available_times",
     # Events advanced (2)
     "set_event_rsvp",
     "move_event",

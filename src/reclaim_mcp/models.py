@@ -596,3 +596,27 @@ class UserAnalyticsRequest(BaseModel):
     def validate_date_format(cls, v: str) -> str:
         """Validate date is in YYYY-MM-DD format."""
         return cast(str, _validate_date_format(v))
+
+
+# --- Scheduling Validation Models ---
+
+
+class SuggestedTimesRequest(BaseModel):
+    """Validation for find_available_times parameters."""
+
+    attendees: list[str] = Field(min_length=1, description="Email addresses of attendees")
+    duration_minutes: int = Field(gt=0, le=480, description="Meeting duration in minutes")
+    start_date: Optional[str] = Field(default=None, description="Start of search window (YYYY-MM-DD)")
+    end_date: Optional[str] = Field(default=None, description="End of search window (YYYY-MM-DD)")
+    limit: Optional[int] = Field(default=None, gt=0, le=50, description="Max suggested times to return")
+
+    @model_validator(mode="after")
+    def validate_date_window(self) -> "SuggestedTimesRequest":
+        """Validate that start_date and end_date are provided together."""
+        if (self.start_date is None) != (self.end_date is None):
+            raise ValueError("start_date and end_date must be provided together")
+        if self.start_date:
+            _validate_date_format(self.start_date)
+        if self.end_date:
+            _validate_date_format(self.end_date)
+        return self

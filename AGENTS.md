@@ -2,8 +2,7 @@
 
 > **Unofficial** Python MCP server for Reclaim.ai, built with FastMCP.
 
-**Current Version**: v0.9.0 (Released 2026-01-06)
-**Next Version**: v0.9.1 (Planning)
+**Current Version**: v0.11.0 (2026-02-22)
 
 ---
 
@@ -28,6 +27,14 @@ AI is a helper, not an authority. Every implementation must be:
 - If uncertain, express confidence levels clearly.
 - When making tradeoffs, document them.
 
+### 4. GitLab Python Standards
+
+Follow [GitLab Python Development Guidelines](https://docs.gitlab.com/development/python_guide/):
+- [Style Guide](https://docs.gitlab.com/development/python_guide/styleguide/) — Black, isort, flake8, mypy, pytest
+- [MR Guidelines](https://docs.gitlab.com/development/python_guide/maintainership/) — review focus, test naming, docstrings
+
+Key requirements: Google-style docstrings on public functions, test files mirror source (`test_{file}.py`), Pydantic for validation, `unittest.mock` for mocking, no bare `except`.
+
 ---
 
 ## Project Context
@@ -38,12 +45,14 @@ Provides MCP tools for AI assistants to interact with Reclaim.ai's API:
 
 | Category | Tool Count | Description |
 |----------|------------|-------------|
-| Tasks | 12 | Task CRUD, time tracking, prioritization |
+| Tasks | 17 | Task CRUD, time tracking, snooze, plan work |
 | Habits | 14 | Smart habit management and scheduling |
 | Events | 5 | Calendar event operations |
+| Context | 2 | Current moment, next moment |
+| Scheduling | 2 | Working hours, available times |
 | Focus | 5 | Focus time settings and blocks |
 | Analytics | 2 | User productivity analytics |
-| Utility | 2 | Health check, server info |
+| Utility | 2 | Health check, connection verify |
 
 ### Technology Stack
 
@@ -67,9 +76,11 @@ src/reclaim_mcp/
 ├── exceptions.py         # Custom exceptions
 ├── models.py             # Pydantic validation models
 └── tools/
-    ├── tasks.py          # Task management
+    ├── tasks.py          # Task management (17 tools)
     ├── events.py         # Calendar events
     ├── habits.py         # Smart habits
+    ├── moments.py        # Current/next moment
+    ├── scheduling.py     # Working hours, available times
     ├── analytics.py      # Analytics
     └── focus.py          # Focus time
 ```

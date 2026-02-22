@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-02-22
+
+### Added
+
+- **Scheduling Tools** (2 new tools):
+  - `get_working_hours` — Read working hours and availability schemes (`GET /api/timeschemes`)
+  - `find_available_times` — Find available meeting times for attendees (`POST /api/availability/suggested-times`)
+- `SuggestedTimesRequest` Pydantic model with date window validation
+
+### Changed
+
+- `get_working_hours` added to **standard** profile (read-only scheduling visibility)
+- `find_available_times` added to **full** profile (meeting scheduling action)
+
+**Total tools: 49** (minimal: 22, standard: 39, full: 49)
+
 ## [0.9.2] - 2026-02-15
 
 ### Fixed
