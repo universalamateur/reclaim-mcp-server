@@ -1,33 +1,14 @@
 # Reclaim MCP Server - Agent Guidelines
 
 > **Unofficial** Python MCP server for Reclaim.ai, built with FastMCP.
+>
+> Core principles (KISS, quality, confidentiality) are maintained in the repository owner's global Claude configuration.
 
 **Current Version**: v0.11.0 (2026-02-22)
 
 ---
 
-## Core Principles
-
-### 1. KISS - Keep It Simple, Stupid
-
-AI is a helper, not an authority. Every implementation must be:
-- **Simple**: If it feels complex, it probably is. Simplify.
-- **Understandable**: Every line merged must be understood by the maintainer.
-- **Minimal**: Do the least necessary to solve the problem correctly.
-
-### 2. Quality and Maintainability Over Assumptions
-
-- **Never assume** - If something looks wrong or unclear, **stop and ask**.
-- **Pull in help** rather than silently assuming it's fine.
-- **Maintainability first** - Code will be read many more times than it's written.
-
-### 3. Explicit Over Implicit
-
-- State what you're doing and why.
-- If uncertain, express confidence levels clearly.
-- When making tradeoffs, document them.
-
-### 4. GitLab Python Standards
+## GitLab Python Standards
 
 Follow [GitLab Python Development Guidelines](https://docs.gitlab.com/development/python_guide/):
 - [Style Guide](https://docs.gitlab.com/development/python_guide/styleguide/) — Black, isort, flake8, mypy, pytest
@@ -249,13 +230,10 @@ poetry run pytest --cov=src/reclaim_mcp
 
 **Always pause and seek clarification when:**
 
-1. The requested change seems to violate KISS principles
-2. You're unsure about the impact on existing functionality
-3. The API behavior doesn't match documentation
-4. A design decision has multiple valid approaches
-5. Test coverage would drop below 80%
-6. The change affects version numbers or public interfaces
-7. Solution requires > 50 lines of new code
-8. Any new dependencies would be added
-
-**Default action when uncertain: Ask, don't assume.**
+1. You're unsure about the impact on existing functionality
+2. The API behavior doesn't match documentation
+3. A design decision has multiple valid approaches
+4. Test coverage would drop below 80%
+5. The change affects version numbers or public interfaces
+6. Solution requires > 50 lines of new code
+7. Any new dependencies would be added
