@@ -46,6 +46,10 @@ pip install reclaim-mcp-server
 
 ### 4. Restart Claude Desktop
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/universalamateur-reclaim-mcp-server).
+
 ## Installation Options
 
 | Method | Command |
